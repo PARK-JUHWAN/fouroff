@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 render_api.py - Nurse Schedule API Server
-Supabase + Kakao OAuth + 로그인 없이 방 생성 지원
+Supabase + Kakao OAuth + 로그인 없이 방 생성 지원 + 근무표 저장
 """
 
 import os
@@ -59,7 +59,7 @@ def health_check():
         "status": "ok",
         "message": "Nurse Schedule API Server with Supabase + Kakao OAuth",
         "supabase": "enabled" if supabase else "disabled",
-        "version": "ver_8_auth"
+        "version": "ver_8_auth_edit"
     }), 200
 
 
@@ -202,6 +202,49 @@ def get_room(room_id):
             return jsonify({"error": "Room not found"}), 404
     
     except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+
+# ========================================
+# ✅ Room Update Route (NEW!)
+# ========================================
+
+@app.route('/rooms/<room_id>', methods=['PUT'])
+def update_room(room_id):
+    """방 데이터 업데이트 (근무표 입력 데이터 저장)"""
+    if not supabase:
+        return jsonify({"error": "Supabase not configured"}), 500
+    
+    try:
+        data = request.get_json()
+        schedule_data = data.get('schedule_data')
+        auth_header = request.headers.get('Authorization')
+        
+        if not schedule_data:
+            return jsonify({"error": "Missing schedule_data"}), 400
+        
+        # 방 존재 확인
+        room_response = supabase.table('rooms').select('*').eq('id', room_id).execute()
+        
+        if not room_response.data:
+            return jsonify({"error": "Room not found"}), 404
+        
+        # 방 데이터 업데이트 (schedule_data 저장)
+        update_response = supabase.table('rooms').update({
+            'schedule_data': schedule_data
+        }).eq('id', room_id).execute()
+        
+        if update_response.data:
+            return jsonify({
+                "status": "success",
+                "message": "Room data updated successfully",
+                "room": update_response.data[0]
+            }), 200
+        else:
+            return jsonify({"error": "Failed to update room"}), 400
+    
+    except Exception as e:
+        print(f"[ERROR] Update room failed: {str(e)}")
         return jsonify({"error": str(e)}), 400
 
 
