@@ -307,6 +307,7 @@ def submit_preferences(room_id):
         data = request.get_json()
         nurse_name = data.get('nurse_name')
         schedule = data.get('schedule', {})
+        is_draft = data.get('is_draft', False)
         auth_header = request.headers.get('Authorization')
         
         if not nurse_name:
@@ -327,7 +328,8 @@ def submit_preferences(room_id):
             'room_id': room_id,
             'user_id': user_id,
             'nurse_name': nurse_name,
-            'schedule': schedule
+            'schedule': schedule,
+            'is_draft': is_draft
         }).execute()
         
         if pref_response.data:
@@ -371,6 +373,10 @@ def solve_schedule():
     try:
         input_json = request.get_json()
         
+        # ✅ 입력 JSON 로깅
+        print(f"[DEBUG] /solve called with {len(json.dumps(input_json))} bytes")
+        print(f"[DEBUG] Input preview: {json.dumps(input_json, ensure_ascii=False)[:200]}...")
+        
         # fouroff_ver_8.py 호출
         result = subprocess.run(
             ['python3', 'fouroff_ver_8.py', json.dumps(input_json, ensure_ascii=False)],
@@ -379,25 +385,47 @@ def solve_schedule():
             timeout=120
         )
         
+        # ✅ 상세 오류 로깅
         if result.returncode != 0:
+            print(f"[ERROR] fouroff_ver_8.py exited with code {result.returncode}")
+            print(f"[ERROR] stdout: {result.stdout[:500]}")
+            print(f"[ERROR] stderr: {result.stderr[:500]}")
+            
             return jsonify({
                 "status": "error",
-                "message": result.stderr
+                "message": result.stderr,
+                "stdout": result.stdout,
+                "returncode": result.returncode
             }), 400
         
         output = json.loads(result.stdout)
+        print(f"[DEBUG] fouroff_ver_8.py success: {output.get('status')}")
         return jsonify(output), 200
     
     except subprocess.TimeoutExpired:
+        print("[ERROR] fouroff_ver_8.py timeout after 120s")
         return jsonify({
             "status": "error",
             "message": "Timeout: 근무표 생성이 너무 오래 걸렸습니다"
         }), 408
-    except Exception as e:
-        print(f"[ERROR] Solve failed: {str(e)}")
+    except json.JSONDecodeError as e:
+        print(f"[ERROR] JSON decode failed: {str(e)}")
+        print(f"[ERROR] Raw output: {result.stdout[:500]}")
         return jsonify({
             "status": "error",
-            "message": str(e)
+            "message": f"JSON parsing error: {str(e)}",
+            "raw_output": result.stdout[:500]
+        }), 400
+    except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"[ERROR] Solve failed with exception:")
+        print(error_trace)
+        
+        return jsonify({
+            "status": "error",
+            "message": str(e),
+            "traceback": error_trace
         }), 400
 
 
