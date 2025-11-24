@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 render_api.py - Nurse Schedule API Server
-Supabase + Kakao OAuth + ë¡œê·¸ì¸ ì—†ì´ ë°© ìƒì„± ì§€ì› + ê·¼ë¬´í‘œ ì €ìž¥
+Supabase + Kakao OAuth + Ã«Â¡Å“ÃªÂ·Â¸Ã¬ÂÂ¸ Ã¬â€”â€ Ã¬ÂÂ´ Ã«Â°Â© Ã¬Æ’ÂÃ¬â€žÂ± Ã¬Â§â‚¬Ã¬â€ºÂ + ÃªÂ·Â¼Ã«Â¬Â´Ã­â€˜Å“ Ã¬Â â‚¬Ã¬Å¾Â¥
 """
 
 import os
@@ -17,7 +17,7 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
-# Supabase ì´ˆê¸°í™”
+# Supabase Ã¬Â´Ë†ÃªÂ¸Â°Ã­â„¢â€
 SUPABASE_URL = os.environ.get('SUPABASE_URL')
 SUPABASE_KEY = os.environ.get('SUPABASE_KEY')
 KAKAO_REST_API_KEY = os.environ.get('KAKAO_REST_API_KEY')
@@ -35,7 +35,7 @@ print(f"[INFO] Supabase: {'enabled' if supabase else 'disabled'}")
 # ========================================
 
 def get_user_from_token(auth_header):
-    """Authorization í—¤ë”ì—ì„œ ì‚¬ìš©ìž ì •ë³´ ì¶”ì¶œ"""
+    """Authorization Ã­â€”Â¤Ã«Ââ€Ã¬â€”ÂÃ¬â€žÅ“ Ã¬â€šÂ¬Ã¬Å¡Â©Ã¬Å¾Â Ã¬Â â€¢Ã«Â³Â´ Ã¬Â¶â€Ã¬Â¶Å“"""
     if not auth_header or not supabase:
         return None
     
@@ -69,7 +69,7 @@ def health_check():
 
 @app.route('/auth/kakao/callback', methods=['POST'])
 def kakao_callback():
-    """ì¹´ì¹´ì˜¤ ë¡œê·¸ì¸ ì½œë°±"""
+    """Ã¬Â¹Â´Ã¬Â¹Â´Ã¬ËœÂ¤ Ã«Â¡Å“ÃªÂ·Â¸Ã¬ÂÂ¸ Ã¬Â½Å“Ã«Â°Â±"""
     if not supabase:
         return jsonify({"error": "Supabase not configured"}), 500
     
@@ -80,7 +80,7 @@ def kakao_callback():
         if not access_token:
             return jsonify({"error": "Missing access_token"}), 400
         
-        # Supabaseì—ì„œ ì¹´ì¹´ì˜¤ ì‚¬ìš©ìž ì •ë³´ ê°€ì ¸ì˜¤ê¸°
+        # SupabaseÃ¬â€”ÂÃ¬â€žÅ“ Ã¬Â¹Â´Ã¬Â¹Â´Ã¬ËœÂ¤ Ã¬â€šÂ¬Ã¬Å¡Â©Ã¬Å¾Â Ã¬Â â€¢Ã«Â³Â´ ÃªÂ°â‚¬Ã¬Â Â¸Ã¬ËœÂ¤ÃªÂ¸Â°
         user = supabase.auth.get_user(access_token)
         
         return jsonify({
@@ -99,7 +99,7 @@ def kakao_callback():
 
 @app.route('/auth/me', methods=['GET'])
 def get_current_user():
-    """í˜„ìž¬ ì‚¬ìš©ìž ì •ë³´"""
+    """Ã­Ëœâ€žÃ¬Å¾Â¬ Ã¬â€šÂ¬Ã¬Å¡Â©Ã¬Å¾Â Ã¬Â â€¢Ã«Â³Â´"""
     auth_header = request.headers.get('Authorization')
     user = get_user_from_token(auth_header)
     
@@ -113,7 +113,7 @@ def get_current_user():
 
 
 # ========================================
-# Room Routes (ë¡œê·¸ì¸ ì„ íƒì‚¬í•­)
+# Room Routes (Ã«Â¡Å“ÃªÂ·Â¸Ã¬ÂÂ¸ Ã¬â€žÂ Ã­Æ’ÂÃ¬â€šÂ¬Ã­â€¢Â­)
 # ========================================
 
 @app.route('/rooms', methods=['OPTIONS'])
@@ -124,7 +124,7 @@ def rooms_options():
 
 @app.route('/rooms', methods=['POST'])
 def create_room():
-    """ë°© ìƒì„± (ë¡œê·¸ì¸ í•„ìˆ˜ ì•„ë‹˜)"""
+    """Ã«Â°Â© Ã¬Æ’ÂÃ¬â€žÂ± (Ã«Â¡Å“ÃªÂ·Â¸Ã¬ÂÂ¸ Ã­â€¢â€žÃ¬Ë†Ëœ Ã¬â€¢â€žÃ«â€¹Ëœ)"""
     if not supabase:
         return jsonify({"error": "Supabase not configured"}), 500
     
@@ -137,11 +137,11 @@ def create_room():
         if not title or not password:
             return jsonify({"error": "Missing title or password"}), 400
         
-        # ì‚¬ìš©ìž ID (ë¡œê·¸ì¸í–ˆìœ¼ë©´ ê°€ì ¸ì˜¤ê¸°, ì•„ë‹ˆë©´ anonymous)
+        # Ã¬â€šÂ¬Ã¬Å¡Â©Ã¬Å¾Â ID (Ã«Â¡Å“ÃªÂ·Â¸Ã¬ÂÂ¸Ã­â€“Ë†Ã¬Å“Â¼Ã«Â©Â´ ÃªÂ°â‚¬Ã¬Â Â¸Ã¬ËœÂ¤ÃªÂ¸Â°, Ã¬â€¢â€žÃ«â€¹Ë†Ã«Â©Â´ anonymous)
         user = get_user_from_token(auth_header)
         owner_id = user.id if user else 'anonymous'
         
-        # Supabaseì— ë°© ìƒì„±
+        # SupabaseÃ¬â€”Â Ã«Â°Â© Ã¬Æ’ÂÃ¬â€žÂ±
         response = supabase.table('rooms').insert({
             'title': title,
             'password': password,
@@ -163,7 +163,7 @@ def create_room():
 
 @app.route('/rooms', methods=['GET'])
 def list_rooms():
-    """ë°© ëª©ë¡ ì¡°íšŒ (ë¡œê·¸ì¸ í•„ìˆ˜ ì•„ë‹˜)"""
+    """Ã«Â°Â© Ã«ÂªÂ©Ã«Â¡Â Ã¬Â¡Â°Ã­Å¡Å’ (Ã«Â¡Å“ÃªÂ·Â¸Ã¬ÂÂ¸ Ã­â€¢â€žÃ¬Ë†Ëœ Ã¬â€¢â€žÃ«â€¹Ëœ)"""
     if not supabase:
         return jsonify({"error": "Supabase not configured"}), 500
     
@@ -171,7 +171,7 @@ def list_rooms():
         auth_header = request.headers.get('Authorization')
         user = get_user_from_token(auth_header)
         
-        # ëª¨ë“  ë°© ì¡°íšŒ (ë¡œê·¸ì¸ ì—¬ë¶€ ë¬´ê´€)
+        # Ã«ÂªÂ¨Ã«â€œÂ  Ã«Â°Â© Ã¬Â¡Â°Ã­Å¡Å’ (Ã«Â¡Å“ÃªÂ·Â¸Ã¬ÂÂ¸ Ã¬â€”Â¬Ã«Â¶â‚¬ Ã«Â¬Â´ÃªÂ´â‚¬)
         response = supabase.table('rooms').select('*').execute()
         
         return jsonify({
@@ -186,7 +186,7 @@ def list_rooms():
 
 @app.route('/rooms/<room_id>', methods=['GET'])
 def get_room(room_id):
-    """íŠ¹ì • ë°© ì¡°íšŒ"""
+    """Ã­Å Â¹Ã¬Â â€¢ Ã«Â°Â© Ã¬Â¡Â°Ã­Å¡Å’"""
     if not supabase:
         return jsonify({"error": "Supabase not configured"}), 500
     
@@ -206,12 +206,12 @@ def get_room(room_id):
 
 
 # ========================================
-# âœ… Room Update Route (NEW!)
+# Ã¢Å“â€¦ Room Update Route (NEW!)
 # ========================================
 
 @app.route('/rooms/<room_id>', methods=['PUT'])
 def update_room(room_id):
-    """ë°© ë°ì´í„° ì—…ë°ì´íŠ¸ (ê·¼ë¬´í‘œ ìž…ë ¥ ë°ì´í„° ì €ìž¥)"""
+    """Ã«Â°Â© Ã«ÂÂ°Ã¬ÂÂ´Ã­â€žÂ° Ã¬â€”â€¦Ã«ÂÂ°Ã¬ÂÂ´Ã­Å Â¸ (ÃªÂ·Â¼Ã«Â¬Â´Ã­â€˜Å“ Ã¬Å¾â€¦Ã«Â Â¥ Ã«ÂÂ°Ã¬ÂÂ´Ã­â€žÂ° Ã¬Â â‚¬Ã¬Å¾Â¥)"""
     if not supabase:
         return jsonify({"error": "Supabase not configured"}), 500
     
@@ -223,13 +223,13 @@ def update_room(room_id):
         if not schedule_data:
             return jsonify({"error": "Missing schedule_data"}), 400
         
-        # ë°© ì¡´ìž¬ í™•ì¸
+        # Ã«Â°Â© Ã¬Â¡Â´Ã¬Å¾Â¬ Ã­â„¢â€¢Ã¬ÂÂ¸
         room_response = supabase.table('rooms').select('*').eq('id', room_id).execute()
         
         if not room_response.data:
             return jsonify({"error": "Room not found"}), 404
         
-        # ë°© ë°ì´í„° ì—…ë°ì´íŠ¸ (schedule_data ì €ìž¥)
+        # Ã«Â°Â© Ã«ÂÂ°Ã¬ÂÂ´Ã­â€žÂ° Ã¬â€”â€¦Ã«ÂÂ°Ã¬ÂÂ´Ã­Å Â¸ (schedule_data Ã¬Â â‚¬Ã¬Å¾Â¥)
         update_response = supabase.table('rooms').update({
             'schedule_data': schedule_data
         }).eq('id', room_id).execute()
@@ -254,7 +254,7 @@ def update_room(room_id):
 
 @app.route('/rooms/<room_id>/join', methods=['POST'])
 def join_room(room_id):
-    """ë°© ìž…ìž¥"""
+    """Ã«Â°Â© Ã¬Å¾â€¦Ã¬Å¾Â¥"""
     if not supabase:
         return jsonify({"error": "Supabase not configured"}), 500
     
@@ -267,7 +267,7 @@ def join_room(room_id):
         if not password or not nurse_name:
             return jsonify({"error": "Missing password or nurse_name"}), 400
         
-        # ë°© í™•ì¸ ë° ë¹„ë°€ë²ˆí˜¸ ê²€ì¦
+        # Ã«Â°Â© Ã­â„¢â€¢Ã¬ÂÂ¸ Ã«Â°Â Ã«Â¹â€žÃ«Â°â‚¬Ã«Â²Ë†Ã­ËœÂ¸ ÃªÂ²â‚¬Ã¬Â¦Â
         room_response = supabase.table('rooms').select('*').eq('id', room_id).execute()
         
         if not room_response.data:
@@ -277,7 +277,7 @@ def join_room(room_id):
         if room['password'] != password:
             return jsonify({"error": "Incorrect password"}), 401
         
-        # ì‚¬ìš©ìž ID
+        # Ã¬â€šÂ¬Ã¬Å¡Â©Ã¬Å¾Â ID
         user = get_user_from_token(auth_header)
         user_id = user.id if user else 'anonymous'
         
@@ -299,7 +299,7 @@ def join_room(room_id):
 
 @app.route('/rooms/<room_id>/preferences', methods=['POST'])
 def submit_preferences(room_id):
-    """í¬ë§ ê·¼ë¬´ ì œì¶œ"""
+    """Ã­ÂÂ¬Ã«Â§Â ÃªÂ·Â¼Ã«Â¬Â´ Ã¬Â Å“Ã¬Â¶Å“"""
     if not supabase:
         return jsonify({"error": "Supabase not configured"}), 500
     
@@ -313,17 +313,17 @@ def submit_preferences(room_id):
         if not nurse_name:
             return jsonify({"error": "Missing nurse_name"}), 400
         
-        # ë°© í™•ì¸
+        # Ã«Â°Â© Ã­â„¢â€¢Ã¬ÂÂ¸
         room_response = supabase.table('rooms').select('*').eq('id', room_id).execute()
         
         if not room_response.data:
             return jsonify({"error": "Room not found"}), 404
         
-        # ì‚¬ìš©ìž ID
+        # Ã¬â€šÂ¬Ã¬Å¡Â©Ã¬Å¾Â ID
         user = get_user_from_token(auth_header)
         user_id = user.id if user else 'anonymous'
         
-        # Preferences ì €ìž¥
+        # Preferences Ã¬Â â‚¬Ã¬Å¾Â¥
         pref_response = supabase.table('preferences').insert({
             'room_id': room_id,
             'user_id': user_id,
@@ -347,7 +347,7 @@ def submit_preferences(room_id):
 
 @app.route('/rooms/<room_id>/preferences', methods=['GET'])
 def get_preferences(room_id):
-    """í¬ë§ ê·¼ë¬´ ì¡°íšŒ"""
+    """Ã­ÂÂ¬Ã«Â§Â ÃªÂ·Â¼Ã«Â¬Â´ Ã¬Â¡Â°Ã­Å¡Å’"""
     if not supabase:
         return jsonify({"error": "Supabase not configured"}), 500
     
@@ -364,28 +364,28 @@ def get_preferences(room_id):
 
 
 # ========================================
-# Schedule Generation (Render í†µí•©)
+# Schedule Generation (Render Ã­â€ ÂµÃ­â€¢Â©)
 # ========================================
 
 @app.route('/solve', methods=['POST'])
 def solve_schedule():
-    """ê·¼ë¬´í‘œ ìƒì„± (fouroff_ver_8.py í˜¸ì¶œ)"""
+    """ÃªÂ·Â¼Ã«Â¬Â´Ã­â€˜Å“ Ã¬Æ’ÂÃ¬â€žÂ± (fouroff_ver_8.py Ã­ËœÂ¸Ã¬Â¶Å“)"""
     try:
         input_json = request.get_json()
         
-        # âœ… ìž…ë ¥ JSON ë¡œê¹…
+        # Ã¢Å“â€¦ Ã¬Å¾â€¦Ã«Â Â¥ JSON Ã«Â¡Å“ÃªÂ¹â€¦
         print(f"[DEBUG] /solve called with {len(json.dumps(input_json))} bytes")
         print(f"[DEBUG] Input preview: {json.dumps(input_json, ensure_ascii=False)[:200]}...")
         
-        # fouroff_ver_8.py 호출
+        # fouroff_ver_8.py í˜¸ì¶œ
         result = subprocess.run(
             ['python3', 'fouroff_ver_8.py', json.dumps(input_json, ensure_ascii=False)],
             capture_output=True,
             text=True,
-            timeout=25  # Gunicorn 30초 timeout 대응
+            timeout=35  # Gunicorn 30ì´ˆ timeout ëŒ€ì‘
         )
         
-        # âœ… ìƒì„¸ ì˜¤ë¥˜ ë¡œê¹…
+        # Ã¢Å“â€¦ Ã¬Æ’ÂÃ¬â€žÂ¸ Ã¬ËœÂ¤Ã«Â¥Ëœ Ã«Â¡Å“ÃªÂ¹â€¦
         if result.returncode != 0:
             print(f"[ERROR] fouroff_ver_8.py exited with code {result.returncode}")
             print(f"[ERROR] stdout: {result.stdout[:500]}")
@@ -403,10 +403,10 @@ def solve_schedule():
         return jsonify(output), 200
     
     except subprocess.TimeoutExpired:
-        print("[ERROR] fouroff_ver_8.py timeout after 25s")
+        print("[ERROR] fouroff_ver_8.py timeout after 35s")
         return jsonify({
             "status": "error",
-            "message": "Timeout: ê·¼ë¬´í‘œ ìƒì„±ì´ ë„ˆë¬´ ì˜¤ëž˜ ê±¸ë ¸ìŠµë‹ˆë‹¤"
+            "message": "Timeout: ÃªÂ·Â¼Ã«Â¬Â´Ã­â€˜Å“ Ã¬Æ’ÂÃ¬â€žÂ±Ã¬ÂÂ´ Ã«â€žË†Ã«Â¬Â´ Ã¬ËœÂ¤Ã«Å¾Ëœ ÃªÂ±Â¸Ã«Â Â¸Ã¬Å ÂµÃ«â€¹Ë†Ã«â€¹Â¤"
         }), 408
     except json.JSONDecodeError as e:
         print(f"[ERROR] JSON decode failed: {str(e)}")
