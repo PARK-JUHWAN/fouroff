@@ -527,7 +527,11 @@ def solve_cpsat(parsed_data):
         # ÃªÂ°Â 3Ã¬ÂÂ¼ ÃªÂµÂ¬ÃªÂ°â€žÃ¬â€”Â zRule Ã¬Â ÂÃ¬Å¡Â©
         for d1, d2, d3 in all_windows:
             # Ã«â€¹Â¤Ã¬ÂÅ’ ÃªÂ·Â¼Ã«Â¬Â´Ã¬ÂÂ¼ ÃªÂ³â€žÃ¬â€šÂ°
-            next_day = d3 + 1
+            # 다음 근무일 계산 (특수: d3=-1이면 next_day=1)
+            if d3 == -1:
+                next_day = 1
+            else:
+                next_day = d3 + 1
             if next_day < 1 or next_day > num_days:
                 continue
             
