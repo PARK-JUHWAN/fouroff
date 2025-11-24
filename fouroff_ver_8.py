@@ -595,8 +595,13 @@ def solve_cpsat(parsed_data):
     
     # ÃƒÂ¬Ã¢â‚¬Â Ã¢â‚¬ÂÃƒÂ«Ã‚Â²Ã¢â‚¬Å¾ ÃƒÂ¬Ã¢â‚¬Â¹Ã‚Â¤ÃƒÂ­Ã¢â‚¬â€œÃ¢â‚¬Â°
     solver = cp_model.CpSolver()
-    solver.parameters.max_time_in_seconds = 60.0
-    solver.parameters.num_search_workers = 8
+    solver.parameters.max_time_in_seconds = 20.0  # Render timeout 대응
+    solver.parameters.num_search_workers = 4  # 메모리 절약
+    solver.parameters.log_search_progress = False  # 로그 최소화
+    
+    # 조기 실패 감지
+    solver.parameters.cp_model_presolve = True
+    solver.parameters.cp_model_probing_level = 2
     
     print("[DEBUG] CP-SAT ÃƒÂ¬Ã¢â‚¬Â Ã¢â‚¬ÂÃƒÂ«Ã‚Â²Ã¢â‚¬Å¾ ÃƒÂ¬Ã¢â‚¬Â¹Ã‚Â¤ÃƒÂ­Ã¢â‚¬â€œÃ¢â‚¬Â° ÃƒÂ¬Ã‚Â¤Ã¢â‚¬Ëœ...", file=sys.stderr)
     status = solver.Solve(model)
@@ -625,20 +630,36 @@ def solve_cpsat(parsed_data):
     
     else:
         error_msg = {
-            cp_model.INFEASIBLE: "No feasible solution found",
-            cp_model.MODEL_INVALID: "Model is invalid",
-            cp_model.UNKNOWN: "Solver status unknown"
+            cp_model.INFEASIBLE: "No feasible solution found (제약 조건을 만족하는 해가 없음)",
+            cp_model.MODEL_INVALID: "Model is invalid (모델 오류)",
+            cp_model.UNKNOWN: "Solver status unknown (시간 초과 또는 알 수 없는 오류)"
         }.get(status, f"Solver failed with status {status}")
         
+        # 입력 값 요약
+        total_nurses = len(nurses)
+        weekday_staff = daily_wallet.get('weekday', {})
+        weekend_staff = daily_wallet.get('weekend', {})
+        
+        input_summary = [
+            f"Nurses: {total_nurses}명",
+            f"Weekday staff: D={weekday_staff.get('D',0)}, E={weekday_staff.get('E',0)}, N={weekday_staff.get('N',0)}",
+            f"Weekend staff: D={weekend_staff.get('D',0)}, E={weekend_staff.get('E',0)}, N={weekend_staff.get('N',0)}",
+            f"Total weekday required: {sum(weekday_staff.values())}",
+            f"Total weekend required: {sum(weekend_staff.values())}",
+        ]
+        
         suggestions = [
-            "Check daily_wallet sum equals nurse count",
-            "Check nurse_wallet totals (with +1 buffer)",
-            "Check preference conflicts",
-            "Try relaxing constraints"
+            "간호사 수가 요구 인원보다 적으면 불가능합니다",
+            "평일/주말 인원 합계가 전체 간호사 수와 같은지 확인하세요",
+            "past_3days가 금지된 패턴(N-D-N, D-N-D 등)이면 다음날 제약 위배 가능",
+            "nurse_wallet의 최소 N 개수가 너무 많으면 불가능합니다",
+            "희망 근무(preferences)가 너무 많으면 충돌 가능성 높음",
         ]
         
         raise RuntimeError(
-            f"{error_msg}\n\nSuggestions:\n" + 
+            f"{error_msg}\n\n입력 요약:\n" + 
+            "\n".join(f"  {s}" for s in input_summary) +
+            "\n\n권장 조치:\n" + 
             "\n".join(f"  - {s}" for s in suggestions)
         )
 
