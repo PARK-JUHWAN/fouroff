@@ -325,8 +325,14 @@ def parse_input(input_json):
     new_nurses = {}
     for new_data in new_nurses_list:
         name = new_data['name']
-        start_day = new_data['start_day']
-        n_count = new_data['n_count']
+        start_day = new_data.get('start_day')
+        n_count = new_data.get('n_count', 0)
+        
+        
+        # start_day가 None이면 건너뛰기
+        if start_day is None:
+            print(f"[WARNING] 신규 간호사 {name}의 start_day가 없어서 건너뜁니다", file=sys.stderr)
+            continue
         
         work_days = num_days - start_day + 1
         
@@ -344,8 +350,14 @@ def parse_input(input_json):
     quit_nurses = {}
     for quit_data in quit_nurses_list:
         name = quit_data['name']
-        last_day = quit_data['last_day']
-        n_count = quit_data['n_count']
+        last_day = quit_data.get('last_day')
+        n_count = quit_data.get('n_count', 0)
+        
+        
+        # last_day가 None이면 건너뛰기
+        if last_day is None:
+            print(f"[WARNING] 퇴사 간호사 {name}의 last_day가 없어서 건너뜁니다", file=sys.stderr)
+            continue
         
         work_days = last_day
         
