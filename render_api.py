@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 render_api.py - Nurse Schedule API Server
-Supabase + Kakao OAuth + 로그인 없이 방 생성 지원 + 근무표 저장
+Supabase + Kakao OAuth + ë¡œê·¸ì¸ ì—†ì´ ë°© ìƒì„± ì§€ì› + ê·¼ë¬´í‘œ ì €ìž¥
 """
 
 import os
@@ -17,7 +17,7 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
-# Supabase 초기화
+# Supabase ì´ˆê¸°í™”
 SUPABASE_URL = os.environ.get('SUPABASE_URL')
 SUPABASE_KEY = os.environ.get('SUPABASE_KEY')
 KAKAO_REST_API_KEY = os.environ.get('KAKAO_REST_API_KEY')
@@ -35,7 +35,7 @@ print(f"[INFO] Supabase: {'enabled' if supabase else 'disabled'}")
 # ========================================
 
 def get_user_from_token(auth_header):
-    """Authorization 헤더에서 사용자 정보 추출"""
+    """Authorization í—¤ë”ì—ì„œ ì‚¬ìš©ìž ì •ë³´ ì¶”ì¶œ"""
     if not auth_header or not supabase:
         return None
     
@@ -69,7 +69,7 @@ def health_check():
 
 @app.route('/auth/kakao/callback', methods=['POST'])
 def kakao_callback():
-    """카카오 로그인 콜백"""
+    """ì¹´ì¹´ì˜¤ ë¡œê·¸ì¸ ì½œë°±"""
     if not supabase:
         return jsonify({"error": "Supabase not configured"}), 500
     
@@ -80,7 +80,7 @@ def kakao_callback():
         if not access_token:
             return jsonify({"error": "Missing access_token"}), 400
         
-        # Supabase에서 카카오 사용자 정보 가져오기
+        # Supabaseì—ì„œ ì¹´ì¹´ì˜¤ ì‚¬ìš©ìž ì •ë³´ ê°€ì ¸ì˜¤ê¸°
         user = supabase.auth.get_user(access_token)
         
         return jsonify({
@@ -99,7 +99,7 @@ def kakao_callback():
 
 @app.route('/auth/me', methods=['GET'])
 def get_current_user():
-    """현재 사용자 정보"""
+    """í˜„ìž¬ ì‚¬ìš©ìž ì •ë³´"""
     auth_header = request.headers.get('Authorization')
     user = get_user_from_token(auth_header)
     
@@ -113,7 +113,7 @@ def get_current_user():
 
 
 # ========================================
-# Room Routes (로그인 선택사항)
+# Room Routes (ë¡œê·¸ì¸ ì„ íƒì‚¬í•­)
 # ========================================
 
 @app.route('/rooms', methods=['OPTIONS'])
@@ -124,7 +124,7 @@ def rooms_options():
 
 @app.route('/rooms', methods=['POST'])
 def create_room():
-    """방 생성 (로그인 필수 아님)"""
+    """ë°© ìƒì„± (ë¡œê·¸ì¸ í•„ìˆ˜ ì•„ë‹˜)"""
     if not supabase:
         return jsonify({"error": "Supabase not configured"}), 500
     
@@ -137,11 +137,11 @@ def create_room():
         if not title or not password:
             return jsonify({"error": "Missing title or password"}), 400
         
-        # 사용자 ID (로그인했으면 가져오기, 아니면 anonymous)
+        # ì‚¬ìš©ìž ID (ë¡œê·¸ì¸í–ˆìœ¼ë©´ ê°€ì ¸ì˜¤ê¸°, ì•„ë‹ˆë©´ anonymous)
         user = get_user_from_token(auth_header)
         owner_id = user.id if user else 'anonymous'
         
-        # Supabase에 방 생성
+        # Supabaseì— ë°© ìƒì„±
         response = supabase.table('rooms').insert({
             'title': title,
             'password': password,
@@ -163,7 +163,7 @@ def create_room():
 
 @app.route('/rooms', methods=['GET'])
 def list_rooms():
-    """방 목록 조회 (로그인 필수 아님)"""
+    """ë°© ëª©ë¡ ì¡°íšŒ (ë¡œê·¸ì¸ í•„ìˆ˜ ì•„ë‹˜)"""
     if not supabase:
         return jsonify({"error": "Supabase not configured"}), 500
     
@@ -171,7 +171,7 @@ def list_rooms():
         auth_header = request.headers.get('Authorization')
         user = get_user_from_token(auth_header)
         
-        # 모든 방 조회 (로그인 여부 무관)
+        # ëª¨ë“  ë°© ì¡°íšŒ (ë¡œê·¸ì¸ ì—¬ë¶€ ë¬´ê´€)
         response = supabase.table('rooms').select('*').execute()
         
         return jsonify({
@@ -186,7 +186,7 @@ def list_rooms():
 
 @app.route('/rooms/<room_id>', methods=['GET'])
 def get_room(room_id):
-    """특정 방 조회"""
+    """íŠ¹ì • ë°© ì¡°íšŒ"""
     if not supabase:
         return jsonify({"error": "Supabase not configured"}), 500
     
@@ -206,12 +206,12 @@ def get_room(room_id):
 
 
 # ========================================
-# ✅ Room Update Route (NEW!)
+# âœ… Room Update Route (NEW!)
 # ========================================
 
 @app.route('/rooms/<room_id>', methods=['PUT'])
 def update_room(room_id):
-    """방 데이터 업데이트 (근무표 입력 데이터 저장)"""
+    """ë°© ë°ì´í„° ì—…ë°ì´íŠ¸ (ê·¼ë¬´í‘œ ìž…ë ¥ ë°ì´í„° ì €ìž¥)"""
     if not supabase:
         return jsonify({"error": "Supabase not configured"}), 500
     
@@ -223,13 +223,13 @@ def update_room(room_id):
         if not schedule_data:
             return jsonify({"error": "Missing schedule_data"}), 400
         
-        # 방 존재 확인
+        # ë°© ì¡´ìž¬ í™•ì¸
         room_response = supabase.table('rooms').select('*').eq('id', room_id).execute()
         
         if not room_response.data:
             return jsonify({"error": "Room not found"}), 404
         
-        # 방 데이터 업데이트 (schedule_data 저장)
+        # ë°© ë°ì´í„° ì—…ë°ì´íŠ¸ (schedule_data ì €ìž¥)
         update_response = supabase.table('rooms').update({
             'schedule_data': schedule_data
         }).eq('id', room_id).execute()
@@ -254,7 +254,7 @@ def update_room(room_id):
 
 @app.route('/rooms/<room_id>/join', methods=['POST'])
 def join_room(room_id):
-    """방 입장"""
+    """ë°© ìž…ìž¥"""
     if not supabase:
         return jsonify({"error": "Supabase not configured"}), 500
     
@@ -267,7 +267,7 @@ def join_room(room_id):
         if not password or not nurse_name:
             return jsonify({"error": "Missing password or nurse_name"}), 400
         
-        # 방 확인 및 비밀번호 검증
+        # ë°© í™•ì¸ ë° ë¹„ë°€ë²ˆí˜¸ ê²€ì¦
         room_response = supabase.table('rooms').select('*').eq('id', room_id).execute()
         
         if not room_response.data:
@@ -277,7 +277,7 @@ def join_room(room_id):
         if room['password'] != password:
             return jsonify({"error": "Incorrect password"}), 401
         
-        # 사용자 ID
+        # ì‚¬ìš©ìž ID
         user = get_user_from_token(auth_header)
         user_id = user.id if user else 'anonymous'
         
@@ -299,7 +299,7 @@ def join_room(room_id):
 
 @app.route('/rooms/<room_id>/preferences', methods=['POST'])
 def submit_preferences(room_id):
-    """희망 근무 제출"""
+    """í¬ë§ ê·¼ë¬´ ì œì¶œ"""
     if not supabase:
         return jsonify({"error": "Supabase not configured"}), 500
     
@@ -313,17 +313,17 @@ def submit_preferences(room_id):
         if not nurse_name:
             return jsonify({"error": "Missing nurse_name"}), 400
         
-        # 방 확인
+        # ë°© í™•ì¸
         room_response = supabase.table('rooms').select('*').eq('id', room_id).execute()
         
         if not room_response.data:
             return jsonify({"error": "Room not found"}), 404
         
-        # 사용자 ID
+        # ì‚¬ìš©ìž ID
         user = get_user_from_token(auth_header)
         user_id = user.id if user else 'anonymous'
         
-        # Preferences 저장
+        # Preferences ì €ìž¥
         pref_response = supabase.table('preferences').insert({
             'room_id': room_id,
             'user_id': user_id,
@@ -347,7 +347,7 @@ def submit_preferences(room_id):
 
 @app.route('/rooms/<room_id>/preferences', methods=['GET'])
 def get_preferences(room_id):
-    """희망 근무 조회"""
+    """í¬ë§ ê·¼ë¬´ ì¡°íšŒ"""
     if not supabase:
         return jsonify({"error": "Supabase not configured"}), 500
     
@@ -364,16 +364,16 @@ def get_preferences(room_id):
 
 
 # ========================================
-# Schedule Generation (Render 통합)
+# Schedule Generation (Render í†µí•©)
 # ========================================
 
 @app.route('/solve', methods=['POST'])
 def solve_schedule():
-    """근무표 생성 (fouroff_ver_8.py 호출)"""
+    """ê·¼ë¬´í‘œ ìƒì„± (fouroff_ver_8.py í˜¸ì¶œ)"""
     try:
         input_json = request.get_json()
         
-        # ✅ 입력 JSON 로깅
+        # âœ… ìž…ë ¥ JSON ë¡œê¹…
         print(f"[DEBUG] /solve called with {len(json.dumps(input_json))} bytes")
         print(f"[DEBUG] Input preview: {json.dumps(input_json, ensure_ascii=False)[:200]}...")
         
@@ -382,10 +382,10 @@ def solve_schedule():
             ['python3', 'fouroff_ver_8.py', json.dumps(input_json, ensure_ascii=False)],
             capture_output=True,
             text=True,
-            timeout=120
+            timeout=25  # Gunicorn 30초 timeout 대응
         )
         
-        # ✅ 상세 오류 로깅
+        # âœ… ìƒì„¸ ì˜¤ë¥˜ ë¡œê¹…
         if result.returncode != 0:
             print(f"[ERROR] fouroff_ver_8.py exited with code {result.returncode}")
             print(f"[ERROR] stdout: {result.stdout[:500]}")
@@ -403,10 +403,10 @@ def solve_schedule():
         return jsonify(output), 200
     
     except subprocess.TimeoutExpired:
-        print("[ERROR] fouroff_ver_8.py timeout after 120s")
+        print("[ERROR] fouroff_ver_8.py timeout after 25s")
         return jsonify({
             "status": "error",
-            "message": "Timeout: 근무표 생성이 너무 오래 걸렸습니다"
+            "message": "Timeout: ê·¼ë¬´í‘œ ìƒì„±ì´ ë„ˆë¬´ ì˜¤ëž˜ ê±¸ë ¸ìŠµë‹ˆë‹¤"
         }), 408
     except json.JSONDecodeError as e:
         print(f"[ERROR] JSON decode failed: {str(e)}")
