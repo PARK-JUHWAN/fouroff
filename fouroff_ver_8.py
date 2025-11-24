@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-fouroff_ver_8.py - 올바른 wallet 계산 (N+1, X+1 포함)
+fouroff_ver_8.py - ì˜¬ë°”ë¥¸ wallet ê³„ì‚° (N+1, X+1 í¬í•¨)
 """
 
 import json
@@ -12,7 +12,7 @@ from ortools.sat.python import cp_model
 
 
 # ========================================
-# Z_RULES (64개 - All Soft Constraints)
+# Z_RULES (64ê°œ - All Soft Constraints)
 # ========================================
 Z_RULES = {
     0: ["X","D","E","N"],   1: ["X","E","N"],       2: ["N"],
@@ -37,7 +37,7 @@ WEIGHT = {"D": 0, "E": 1, "N": 2, "X": 3}
 # ========================================
 
 def validate_input(data, parsed_data):
-    """입력 데이터 검증"""
+    """ìž…ë ¥ ë°ì´í„° ê²€ì¦"""
     errors = []
     
     year = data['year']
@@ -46,7 +46,7 @@ def validate_input(data, parsed_data):
     nurses_data = data['nurses']
     nurse_count = len(nurses_data)
     
-    # past_3days 검증
+    # past_3days ê²€ì¦
     for nurse_data in nurses_data:
         name = nurse_data['name']
         past = nurse_data.get('past_3days', [])
@@ -58,14 +58,14 @@ def validate_input(data, parsed_data):
             if duty not in ['D', 'E', 'N', 'X']:
                 errors.append(f"{name}: past_3days[{i}] invalid duty '{duty}'")
     
-    # daily_wallet 합계 검증
+    # daily_wallet í•©ê³„ ê²€ì¦
     daily_wallet = parsed_data['daily_wallet']
     for day, wallet in daily_wallet.items():
         total = sum(wallet.values())
         if total != nurse_count:
             errors.append(f"Day {day}: daily_wallet sum ({total}) != nurse count ({nurse_count})")
     
-    # 날짜 범위 검증
+    # ë‚ ì§œ ë²”ìœ„ ê²€ì¦
     new_nurses = parsed_data['new_nurses']
     for name, info in new_nurses.items():
         start_day = info['start_day']
@@ -78,10 +78,10 @@ def validate_input(data, parsed_data):
         if not (1 <= last_day <= num_days):
             errors.append(f"{name}: last_day ({last_day}) out of range")
     
-    # preference 충돌 검증
+    # preference ì¶©ëŒ ê²€ì¦
     preferences = parsed_data['preferences']
     
-    # daily_wallet 초과 검증
+    # daily_wallet ì´ˆê³¼ ê²€ì¦
     daily_pref_count = defaultdict(lambda: defaultdict(int))
     for pref in preferences:
         name = pref['name']
@@ -103,7 +103,7 @@ def validate_input(data, parsed_data):
 
 
 def validate_result(result, parsed_data):
-    """결과 검증"""
+    """ê²°ê³¼ ê²€ì¦"""
     num_days = parsed_data['num_days']
     nurse_wallets = parsed_data['nurse_wallets']
     daily_wallet = parsed_data['daily_wallet']
@@ -116,7 +116,7 @@ def validate_result(result, parsed_data):
         'nurse_duty_counts': {}
     }
     
-    # 일별 근무 카운트
+    # ì¼ë³„ ê·¼ë¬´ ì¹´ìš´íŠ¸
     for day in range(1, num_days + 1):
         day_count = defaultdict(int)
         
@@ -135,7 +135,7 @@ def validate_result(result, parsed_data):
                     f"Day {day} {duty}: expected {expected}, got {actual}"
                 )
     
-    # 간호사별 근무 카운트
+    # ê°„í˜¸ì‚¬ë³„ ê·¼ë¬´ ì¹´ìš´íŠ¸
     for nurse, schedule in result.items():
         duty_count = defaultdict(int)
         
@@ -146,7 +146,7 @@ def validate_result(result, parsed_data):
         
         validation['nurse_duty_counts'][nurse] = dict(duty_count)
         
-        # nurse_wallet 만족 여부 (±1 허용)
+        # nurse_wallet ë§Œì¡± ì—¬ë¶€ (Â±1 í—ˆìš©)
         if nurse in nurse_wallets:
             for duty in ['D', 'E', 'N', 'X']:
                 expected = nurse_wallets[nurse][duty]
@@ -155,10 +155,10 @@ def validate_result(result, parsed_data):
                 if not (expected - 1 <= actual <= expected + 1):
                     validation['nurse_wallet_satisfied'] = False
                     validation['nurse_violations'].append(
-                        f"{nurse} {duty}: expected {expected}±1, got {actual}"
+                        f"{nurse} {duty}: expected {expected}Â±1, got {actual}"
                     )
             
-            # N에 대한 엄격한 검증
+            # Nì— ëŒ€í•œ ì—„ê²©í•œ ê²€ì¦
             if 'N' in duty_count:
                 expected_N = nurse_wallets[nurse]['N']
                 actual_N = duty_count['N']
@@ -167,7 +167,7 @@ def validate_result(result, parsed_data):
                 if remaining_N >= 2:
                     validation['nurse_wallet_satisfied'] = False
                     validation['nurse_violations'].append(
-                        f"{nurse}: N 부족 (남은 N: {remaining_N}, 목표: <=1)"
+                        f"{nurse}: N ë¶€ì¡± (ë‚¨ì€ N: {remaining_N}, ëª©í‘œ: <=1)"
                     )
     
     return validation
@@ -178,17 +178,17 @@ def validate_result(result, parsed_data):
 # ========================================
 
 def parse_input(input_json):
-    """JSON 입력 파싱 및 wallet 계산"""
+    """JSON ìž…ë ¥ íŒŒì‹± ë° wallet ê³„ì‚°"""
     data = json.loads(input_json)
     
     year = data['year']
     month = data['month']
     num_days = calendar.monthrange(year, month)[1]
     
-    # 대한민국 공휴일
+    # ëŒ€í•œë¯¼êµ­ ê³µíœ´ì¼
     kr_holidays = holidays.KR(years=year)
     
-    # daily_wallet 생성
+    # daily_wallet ìƒì„±
     daily_wallet_config = data.get('daily_wallet_config', {})
     weekday_wallet = daily_wallet_config.get('weekday', {})
     weekend_wallet = daily_wallet_config.get('weekend', {})
@@ -203,11 +203,11 @@ def parse_input(input_json):
         else:
             daily_wallet[day] = dict(weekday_wallet)
     
-    # nurse_wallet 계산
+    # nurse_wallet ê³„ì‚°
     nurses_data = data['nurses']
     nurse_count = len(nurses_data)
     
-    # Keep 타입별 간호사 수 카운트
+    # Keep íƒ€ìž…ë³„ ê°„í˜¸ì‚¬ ìˆ˜ ì¹´ìš´íŠ¸
     all_nurses = []
     day_keep_nurses = []
     night_keep_nurses = []
@@ -216,9 +216,9 @@ def parse_input(input_json):
         name = nurse_data['name']
         keep_type = nurse_data.get('keep_type', 'All')
         
-        if keep_type == 'Dayㅤ':
+        if keep_type == 'Dayã…¤':
             day_keep_nurses.append(name)
-        elif keep_type == 'Nightㅤ':
+        elif keep_type == 'Nightã…¤':
             night_keep_nurses.append(name)
         else:
             all_nurses.append(name)
@@ -227,68 +227,68 @@ def parse_input(input_json):
     num_night_keep = len(night_keep_nurses)
     num_all = len(all_nurses)
     
-    print(f"[DEBUG] Keep 타입 분포: All={num_all}, Dayㅤ={num_day_keep}, Nightㅤ={num_night_keep}", file=sys.stderr)
+    print(f"[DEBUG] Keep íƒ€ìž… ë¶„í¬: All={num_all}, Dayã…¤={num_day_keep}, Nightã…¤={num_night_keep}", file=sys.stderr)
     
-    # 이 D, E, N, X 계산
+    # ì´ D, E, N, X ê³„ì‚°
     total_D = sum(daily_wallet[day]['D'] for day in range(1, num_days + 1))
     total_E = sum(daily_wallet[day]['E'] for day in range(1, num_days + 1))
     total_N = sum(daily_wallet[day]['N'] for day in range(1, num_days + 1))
     total_X = sum(daily_wallet[day]['X'] for day in range(1, num_days + 1))
     
-    print(f"[DEBUG] 필요 이합: D={total_D}, E={total_E}, N={total_N}, X={total_X}", file=sys.stderr)
+    print(f"[DEBUG] í•„ìš” ì´í•©: D={total_D}, E={total_E}, N={total_N}, X={total_X}", file=sys.stderr)
     
-    # nurse_wallets 계산
+    # nurse_wallets ê³„ì‚°
     nurse_wallets = {}
     
-    # Dayㅤ: D만, E/N=0
+    # Dayã…¤: Dë§Œ, E/N=0
     for name in day_keep_nurses:
         nurse_wallets[name] = {
             'D': num_days,
             'E': 0,
             'N': 0,
-            'X': 2  # 여유분
+            'X': 2  # ì—¬ìœ ë¶„
         }
     
-    # Nightㅤ: N=15, D/E=0
+    # Nightã…¤: N=15, D/E=0
     for name in night_keep_nurses:
         nurse_wallets[name] = {
             'D': 0,
             'E': 0,
             'N': 15,
-            'X': num_days - 15 + 2  # 여유분
+            'X': num_days - 15 + 2  # ì—¬ìœ ë¶„
         }
     
-    # All 타입: 균등 분배 + N+1, X+1 여유분
+    # All íƒ€ìž…: ê· ë“± ë¶„ë°° + N+1, X+1 ì—¬ìœ ë¶„
     if num_all > 0:
-        # Dayㅤ이 사용하는 이 D
+        # Dayã…¤ì´ ì‚¬ìš©í•˜ëŠ” ì´ D
         day_keep_total_D = num_day_keep * num_days
         
-        # Nightㅤ이 사용하는 이 N
+        # Nightã…¤ì´ ì‚¬ìš©í•˜ëŠ” ì´ N
         night_keep_total_N = num_night_keep * 15
         
-        # All 타입이 사용해야 하는 D, E, N, X
+        # All íƒ€ìž…ì´ ì‚¬ìš©í•´ì•¼ í•˜ëŠ” D, E, N, X
         all_total_D = total_D - day_keep_total_D
         all_total_E = total_E
         all_total_N = total_N - night_keep_total_N
         all_total_X = total_X
         
-        print(f"[DEBUG] All 타입이 사용해야 하는 근무: D={all_total_D}, E={all_total_E}, N={all_total_N}, X={all_total_X}", file=sys.stderr)
+        print(f"[DEBUG] All íƒ€ìž…ì´ ì‚¬ìš©í•´ì•¼ í•˜ëŠ” ê·¼ë¬´: D={all_total_D}, E={all_total_E}, N={all_total_N}, X={all_total_X}", file=sys.stderr)
         
-        # nurse_wallet_min에서 min_N 가져오기
+        # nurse_wallet_minì—ì„œ min_N ê°€ì ¸ì˜¤ê¸°
         nurse_wallet_min = data.get('nurse_wallet_min', {})
         min_N = nurse_wallet_min.get('N', 6)
         
-        # 균등 분배
+        # ê· ë“± ë¶„ë°°
         per_nurse_D = all_total_D // num_all
         per_nurse_E = all_total_E // num_all
         per_nurse_N = min_N + 1  # N+1
         per_nurse_X = (all_total_X // num_all) + 1  # X+1
         
-        # 나머지 분배
+        # ë‚˜ë¨¸ì§€ ë¶„ë°°
         remainder_D = all_total_D % num_all
         remainder_E = all_total_E % num_all
         
-        print(f"[DEBUG] 기본 할당: D={per_nurse_D}, E={per_nurse_E}, N={per_nurse_N}(min+1), X={per_nurse_X}(+1)", file=sys.stderr)
+        print(f"[DEBUG] ê¸°ë³¸ í• ë‹¹: D={per_nurse_D}, E={per_nurse_E}, N={per_nurse_N}(min+1), X={per_nurse_X}(+1)", file=sys.stderr)
         
         for i, name in enumerate(all_nurses):
             d_count = per_nurse_D + (1 if i < remainder_D else 0)
@@ -304,11 +304,11 @@ def parse_input(input_json):
             }
 
     
-    print("[DEBUG] nurse_wallets 계산 완료:", file=sys.stderr)
+    print("[DEBUG] nurse_wallets ê³„ì‚° ì™„ë£Œ:", file=sys.stderr)
     for name, wallet in nurse_wallets.items():
         print(f"  {name}: {wallet}", file=sys.stderr)
     
-    # 신규/퇴사 간호사 wallet 조정
+    # ì‹ ê·œ/í‡´ì‚¬ ê°„í˜¸ì‚¬ wallet ì¡°ì •
     new_nurses_list = data.get('new', [])
     quit_nurses_list = data.get('quit', [])
     
@@ -320,11 +320,11 @@ def parse_input(input_json):
         
         work_days = num_days - start_day + 1
         
-        # 신규: X는 출근 전, N은 지정값
+        # ì‹ ê·œ: XëŠ” ì¶œê·¼ ì „, Nì€ ì§€ì •ê°’
         nurse_wallets[name]['X'] = start_day - 1 + nurse_wallets[name]['X']
         nurse_wallets[name]['N'] = n_count
         
-        # D, E 재계산
+        # D, E ìž¬ê³„ì‚°
         remaining = work_days - n_count
         nurse_wallets[name]['D'] = remaining // 2
         nurse_wallets[name]['E'] = remaining - nurse_wallets[name]['D']
@@ -339,18 +339,18 @@ def parse_input(input_json):
         
         work_days = last_day
         
-        # 퇴사: X는 퇴사 후, N은 지정값
+        # í‡´ì‚¬: XëŠ” í‡´ì‚¬ í›„, Nì€ ì§€ì •ê°’
         nurse_wallets[name]['X'] += (num_days - last_day)
         nurse_wallets[name]['N'] = n_count
         
-        # D, E 재계산
+        # D, E ìž¬ê³„ì‚°
         remaining = work_days - n_count
         nurse_wallets[name]['D'] = remaining // 2
         nurse_wallets[name]['E'] = remaining - nurse_wallets[name]['D']
         
         quit_nurses[name] = {'last_day': last_day, 'n_count': n_count}
     
-    # preferences에서 차감
+    # preferencesì—ì„œ ì°¨ê°
     preferences = data.get('preferences', [])
     for pref in preferences:
         name = pref['name']
@@ -361,11 +361,11 @@ def parse_input(input_json):
                 if duty in nurse_wallets[name]:
                     nurse_wallets[name][duty] -= 1
     
-    print("[DEBUG] 신규/퇴사/희망 반영 후 nurse_wallets:", file=sys.stderr)
+    print("[DEBUG] ì‹ ê·œ/í‡´ì‚¬/í¬ë§ ë°˜ì˜ í›„ nurse_wallets:", file=sys.stderr)
     for name, wallet in nurse_wallets.items():
         print(f"  {name}: {wallet}", file=sys.stderr)
     
-    # 검증 수행
+    # ê²€ì¦ ìˆ˜í–‰
     parsed_data = {
         'year': year,
         'month': month,
@@ -380,7 +380,7 @@ def parse_input(input_json):
     
     errors = validate_input(data, parsed_data)
     if errors:
-        raise ValueError("입력 검증 실패:\n" + "\n".join(f"  - {e}" for e in errors))
+        raise ValueError("ìž…ë ¥ ê²€ì¦ ì‹¤íŒ¨:\n" + "\n".join(f"  - {e}" for e in errors))
     
     return parsed_data
 
@@ -390,7 +390,7 @@ def parse_input(input_json):
 # ========================================
 
 def solve_cpsat(parsed_data):
-    """CP-SAT로 근무표 생성"""
+    """CP-SATë¡œ ê·¼ë¬´í‘œ ìƒì„±"""
     year = parsed_data['year']
     month = parsed_data['month']
     num_days = parsed_data['num_days']
@@ -401,7 +401,7 @@ def solve_cpsat(parsed_data):
     preferences = parsed_data['preferences']
     nurses_data = parsed_data['nurses_data']
     
-    print(f"[DEBUG] CP-SAT 시작: {year}년 {month}월 ({num_days}일)", file=sys.stderr)
+    print(f"[DEBUG] CP-SAT ì‹œìž‘: {year}ë…„ {month}ì›” ({num_days}ì¼)", file=sys.stderr)
     
     nurses = list(nurse_wallets.keys())
     days = list(range(1, num_days + 1))
@@ -409,7 +409,7 @@ def solve_cpsat(parsed_data):
     
     model = cp_model.CpModel()
     
-    # 변수 생성
+    # ë³€ìˆ˜ ìƒì„±
     x = {}
     for nurse in nurses:
         x[nurse] = {}
@@ -418,17 +418,17 @@ def solve_cpsat(parsed_data):
             for duty in duties:
                 x[nurse][day][duty] = model.NewBoolVar(f'{nurse}_d{day}_{duty}')
     
-    # 제약 1: 하루에 하나의 근무만
+    # ì œì•½ 1: í•˜ë£¨ì— í•˜ë‚˜ì˜ ê·¼ë¬´ë§Œ
     for nurse in nurses:
         for day in days:
             model.Add(sum(x[nurse][day][duty] for duty in duties) == 1)
     
-    # 제약 2: daily_wallet 만족
+    # ì œì•½ 2: daily_wallet ë§Œì¡±
     for day in days:
         for duty in duties:
             model.Add(sum(x[nurse][day][duty] for nurse in nurses) == daily_wallet[day][duty])
     
-    # 제약 3: nurse_wallet 만족 (±1 허용)
+    # ì œì•½ 3: nurse_wallet ë§Œì¡± (Â±1 í—ˆìš©)
     for nurse in nurses:
         for duty in duties:
             target = nurse_wallets[nurse][duty]
@@ -436,7 +436,7 @@ def solve_cpsat(parsed_data):
             model.Add(actual >= target - 1)
             model.Add(actual <= target + 1)
     
-    # 제약 4: 희망 근무 고정
+    # ì œì•½ 4: í¬ë§ ê·¼ë¬´ ê³ ì •
     pref_dict = {}
     for pref in preferences:
         name = pref['name']
@@ -450,57 +450,118 @@ def solve_cpsat(parsed_data):
                 if day in days:
                     model.Add(x[nurse][day][duty] == 1)
     
-    # 제약 5: 신규 간호사
+    # ì œì•½ 5: ì‹ ê·œ ê°„í˜¸ì‚¬
     for name, data in new_nurses.items():
         start_day = data['start_day']
-        # 출근 전: X
+        # ì¶œê·¼ ì „: X
         for day in range(1, start_day):
             if day in days:
                 model.Add(x[name][day]['X'] == 1)
-        # 첫날: D
+        # ì²«ë‚ : D
         if start_day in days:
             model.Add(x[name][start_day]['D'] == 1)
     
-    # 제약 6: 퇴사 간호사
+    # ì œì•½ 6: í‡´ì‚¬ ê°„í˜¸ì‚¬
     for name, data in quit_nurses.items():
         last_day = data['last_day']
-        # 퇴사 후: X
+        # í‡´ì‚¬ í›„: X
         for day in range(last_day, num_days + 1):
             if day in days:
                 model.Add(x[name][day]['X'] == 1)
     
-    # 제약 7: Keep 타입
+    # ì œì•½ 7: Keep íƒ€ìž…
     for nurse_data in nurses_data:
         name = nurse_data['name']
         keep_type = nurse_data.get('keep_type', 'All')
         
-        if keep_type == 'Dayㅤ':
-            # E, N 제외
+        if keep_type == 'Dayã…¤':
+            # E, N ì œì™¸
             for day in days:
                 model.Add(x[name][day]['E'] == 0)
                 model.Add(x[name][day]['N'] == 0)
         
-        elif keep_type == 'Nightㅤ':
-            # D, E 제외
+        elif keep_type == 'Nightã…¤':
+            # D, E ì œì™¸
             for day in days:
                 model.Add(x[name][day]['D'] == 0)
                 model.Add(x[name][day]['E'] == 0)
     
-    # 목적함수: 최소화 (없음)
+    # 제약 8: zRule (과거 3일 근무에 따른 허용 근무)
+    for nurse in nurses:
+        nurse_data = next(n for n in nurses_data if n['name'] == nurse)
+        past_3days = nurse_data['past_3days']
+        
+        for day in days:
+            # 현재 날짜의 이전 3일 근무 확인
+            prev_duties = []
+            for offset in range(3):
+                prev_day = day - 3 + offset
+                if prev_day < 1:
+                    # past_3days에서 가져오기
+                    idx = prev_day + 3  # -2→1, -1→2, 0→3 (하지만 0은 사용 안 함)
+                    if idx >= 0 and idx < 3:
+                        prev_duties.append(past_3days[idx])
+                    elif prev_day == 0:
+                        # day 0은 존재하지 않으므로 스킵
+                        continue
+                else:
+                    # 실제 날짜 변수 사용
+                    prev_duties.append(None)  # 나중에 처리
+            
+            # prev_duties가 완전하지 않으면 스킵 (첫날 등)
+            if len(prev_duties) != 3 or None in prev_duties:
+                # 첫날은 past_3days로만 처리
+                if day == 1:
+                    z_val = sum(WEIGHT[past_3days[i]] * (4 ** i) for i in range(3))
+                    if z_val in Z_RULES:
+                        allowed = Z_RULES[z_val]
+                        for duty in duties:
+                            if duty not in allowed:
+                                model.Add(x[nurse][day][duty] == 0)
+                continue
+            
+            # zRule 적용 (day >= 4만)
+            if day >= 4:
+                for z_val, allowed in Z_RULES.items():
+                    # z값을 past3로 변환
+                    z_temp = z_val
+                    required_past = []
+                    for _ in range(3):
+                        required_past.append(["D", "E", "N", "X"][z_temp % 4])
+                        z_temp //= 4
+                    
+                    # 이전 3일이 required_past와 일치하는지 확인
+                    match_vars = []
+                    for offset in range(3):
+                        prev_day = day - 3 + offset
+                        req_duty = required_past[offset]
+                        match_vars.append(x[nurse][prev_day][req_duty])
+                    
+                    # 모든 match_vars가 1이면 allowed만 허용
+                    match_all = model.NewBoolVar(f'match_{nurse}_d{day}_z{z_val}')
+                    model.Add(sum(match_vars) == 3).OnlyEnforceIf(match_all)
+                    model.Add(sum(match_vars) < 3).OnlyEnforceIf(match_all.Not())
+                    
+                    # match_all이 True이면 allowed 외의 근무 금지
+                    for duty in duties:
+                        if duty not in allowed:
+                            model.Add(x[nurse][day][duty] == 0).OnlyEnforceIf(match_all)
+    
+    # ëª©ì í•¨ìˆ˜: ìµœì†Œí™” (ì—†ìŒ)
     model.Minimize(0)
     
-    # 솔버 실행
+    # ì†”ë²„ ì‹¤í–‰
     solver = cp_model.CpSolver()
     solver.parameters.max_time_in_seconds = 60.0
     solver.parameters.num_search_workers = 8
     
-    print("[DEBUG] CP-SAT 솔버 실행 중...", file=sys.stderr)
+    print("[DEBUG] CP-SAT ì†”ë²„ ì‹¤í–‰ ì¤‘...", file=sys.stderr)
     status = solver.Solve(model)
     
     if status in [cp_model.OPTIMAL, cp_model.FEASIBLE]:
-        print(f"[DEBUG] 해결책 발견! (status={status})", file=sys.stderr)
+        print(f"[DEBUG] í•´ê²°ì±… ë°œê²¬! (status={status})", file=sys.stderr)
         
-        # 결과 추출
+        # ê²°ê³¼ ì¶”ì¶œ
         result = {}
         for nurse in nurses:
             result[nurse] = {}
@@ -544,20 +605,20 @@ def solve_cpsat(parsed_data):
 # ========================================
 
 def main():
-    """메인 실행"""
+    """ë©”ì¸ ì‹¤í–‰"""
     if len(sys.argv) > 1:
         input_json = sys.argv[1]
     else:
         input_json = sys.stdin.read()
     
     try:
-        # 파싱 및 검증
+        # íŒŒì‹± ë° ê²€ì¦
         parsed_data = parse_input(input_json)
         
-        # 솔버 실행
+        # ì†”ë²„ ì‹¤í–‰
         result, solver = solve_cpsat(parsed_data)
         
-        # 결과 검증
+        # ê²°ê³¼ ê²€ì¦
         validation = validate_result(result, parsed_data)
         
         output = {
