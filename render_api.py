@@ -386,11 +386,12 @@ def solve_schedule():
             timeout=25  # Gunicorn 30s timeout handling
         )
         
-        # Detailed error logging
+        # Detailed error logging (expanded buffer for debugging)
         if result.returncode != 0:
             print(f"[ERROR] fouroff_ver_8.py exited with code {result.returncode}")
-            print(f"[ERROR] stdout: {result.stdout[:500]}")
-            print(f"[ERROR] stderr: {result.stderr[:500]}")
+            print(f"[ERROR] stdout (first 1000): {result.stdout[:1000]}")
+            print(f"[ERROR] stderr (first 2000): {result.stderr[:2000]}")
+            print(f"[ERROR] stderr (last 500): {result.stderr[-500:]}")
             
             return jsonify({
                 "status": "error",
@@ -411,11 +412,12 @@ def solve_schedule():
         }), 408
     except json.JSONDecodeError as e:
         print(f"[ERROR] JSON decode failed: {str(e)}")
-        print(f"[ERROR] Raw output: {result.stdout[:500]}")
+        print(f"[ERROR] Raw output (first 1000): {result.stdout[:1000]}")
+        print(f"[ERROR] Raw output (last 500): {result.stdout[-500:]}")
         return jsonify({
             "status": "error",
             "message": f"JSON parsing error: {str(e)}",
-            "raw_output": result.stdout[:500]
+            "raw_output": result.stdout[:1000]
         }), 400
     except Exception as e:
         import traceback
