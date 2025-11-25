@@ -691,7 +691,7 @@ def solve_cpsat(parsed_data):
     
     # Run solver
     solver = cp_model.CpSolver()
-    solver.parameters.max_time_in_seconds = 20.0  # Render timeout handling
+    solver.parameters.max_time_in_seconds = 120.0  # Render timeout handling
     solver.parameters.num_search_workers = 4  # Memory conservation
     solver.parameters.log_search_progress = False  # Minimize logs
     
@@ -780,6 +780,17 @@ def main():
         input_json = sys.argv[1]
     else:
         input_json = sys.stdin.read()
+    
+    # Immediate logging before parsing (to debug timeout issues)
+    try:
+        raw_data = json.loads(input_json)
+        dwc = raw_data.get('daily_wallet_config', {})
+        print(f"[IMMEDIATE] daily_wallet_config.weekday: {dwc.get('weekday', 'MISSING')}", file=sys.stderr)
+        print(f"[IMMEDIATE] daily_wallet_config.weekend: {dwc.get('weekend', 'MISSING')}", file=sys.stderr)
+        print(f"[IMMEDIATE] nurse_wallet_min: {raw_data.get('nurse_wallet_min', 'MISSING')}", file=sys.stderr)
+        sys.stderr.flush()
+    except:
+        pass
     
     try:
         # Parse and validate
