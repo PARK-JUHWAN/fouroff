@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
+# toClaude: KOREAN_PROTECTED - No sed, use str_replace only
 """
-fouroff_ver_8.py - ÃƒÆ’Ã‚Â¬Ãƒâ€¹Ã…â€œÃƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â°ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â¥Ãƒâ€šÃ‚Â¸ wallet ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â³ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â° (N+1, X+1 ÃƒÆ’Ã‚Â­Ãƒâ€šÃ‚ÂÃƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â­ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢Ãƒâ€šÃ‚Â¨)
+fouroff_ver_8.py - 시뮬레이션 wallet 계산 (N+1, X+1 허용)
 """
 
 import json
@@ -12,7 +13,7 @@ from ortools.sat.python import cp_model
 
 
 # ========================================
-# Z_RULES (64ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â°Ãƒâ€¦Ã¢â‚¬Å“ - All Soft Constraints)
+# Z_RULES (64개 - All Soft Constraints)
 # ========================================
 Z_RULES = {
     0: ["X","D","E","N"],   1: ["X","E","N"],       2: ["N"],
@@ -36,8 +37,9 @@ WEIGHT = {"D": 0, "E": 1, "N": 2, "X": 3}
 # Validation Functions
 # ========================================
 
+# toClaude: KOREAN_PROTECTED - No sed, use str_replace only
 def validate_input(data, parsed_data):
-    """ÃƒÆ’Ã‚Â¬Ãƒâ€¦Ã‚Â¾ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â Ãƒâ€šÃ‚Â¥ ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚ÂÃƒâ€šÃ‚Â°ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒâ€šÃ‚Â´ÃƒÆ’Ã‚Â­ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€šÃ‚Â° ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â²ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â¦Ãƒâ€šÃ‚Â"""
+    """입력 데이터 검증"""
     errors = []
     
     year = data['year']
@@ -46,7 +48,7 @@ def validate_input(data, parsed_data):
     nurses_data = data['nurses']
     nurse_count = len(nurses_data)
     
-    # past_3days ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â²ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â¦Ãƒâ€šÃ‚Â
+    # toClaude: KOREAN_PROTECTED - past_3days 검증
     for nurse_data in nurses_data:
         name = nurse_data['name']
         past = nurse_data.get('past_3days', [])
@@ -58,7 +60,7 @@ def validate_input(data, parsed_data):
             if duty not in ['D', 'E', 'N', 'X']:
                 errors.append(f"{name}: past_3days[{i}] invalid duty '{duty}'")
         
-        # past_3daysÃªÂ°â‚¬ Z_RULESÃ¬â€”Â Ã¬Å¾Ë†Ã«Å â€ Ã­Å’Â¨Ã­â€žÂ´Ã¬ÂÂ¸Ã¬Â§â‚¬ Ã­â„¢â€¢Ã¬ÂÂ¸
+        # toClaude: KOREAN_PROTECTED - past_3days가 Z_RULES에 있는지 포함여부인지 확인
         if len(past) == 3 and all(d in ['D', 'E', 'N', 'X'] for d in past):
             z = 16 * WEIGHT[past[0]] + 4 * WEIGHT[past[1]] + 1 * WEIGHT[past[2]]
             if z not in Z_RULES:
@@ -68,14 +70,14 @@ def validate_input(data, parsed_data):
                     f"This pattern is forbidden and cannot occur."
                 )
     
-    # daily_wallet ÃƒÆ’Ã‚Â­ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢Ãƒâ€šÃ‚Â©ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â³ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾ ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â²ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â¦Ãƒâ€šÃ‚Â
+    # toClaude: KOREAN_PROTECTED - daily_wallet 확인 검증
     daily_wallet = parsed_data['daily_wallet']
     for day, wallet in daily_wallet.items():
         total = sum(wallet.values())
         if total != nurse_count:
             errors.append(f"Day {day}: daily_wallet sum ({total}) != nurse count ({nurse_count})")
     
-    # ÃƒÆ’Ã‚Â«ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â§Ãƒâ€¦Ã¢â‚¬Å“ ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â²ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾ ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â²ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â¦Ãƒâ€šÃ‚Â
+    # toClaude: KOREAN_PROTECTED - 날짜 범위 검증
     new_nurses = parsed_data['new_nurses']
     for name, info in new_nurses.items():
         start_day = info['start_day']
@@ -88,10 +90,10 @@ def validate_input(data, parsed_data):
         if not (1 <= last_day <= num_days):
             errors.append(f"{name}: last_day ({last_day}) out of range")
     
-    # preference ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â¶Ãƒâ€šÃ‚Â©ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚ÂÃƒâ€¦Ã¢â‚¬â„¢ ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â²ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â¦Ãƒâ€šÃ‚Â
+    # toClaude: KOREAN_PROTECTED - preference 충돌 검증
     preferences = parsed_data['preferences']
     
-    # daily_wallet ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â´Ãƒâ€¹Ã¢â‚¬Â ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â³Ãƒâ€šÃ‚Â¼ ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â²ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â¦Ãƒâ€šÃ‚Â
+    # toClaude: KOREAN_PROTECTED - daily_wallet 초과 검증
     daily_pref_count = defaultdict(lambda: defaultdict(int))
     for pref in preferences:
         name = pref['name']
@@ -112,8 +114,9 @@ def validate_input(data, parsed_data):
     return errors
 
 
+# toClaude: KOREAN_PROTECTED - No sed, use str_replace only
 def validate_result(result, parsed_data):
-    """ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â²Ãƒâ€šÃ‚Â°ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â³Ãƒâ€šÃ‚Â¼ ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â²ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â¦Ãƒâ€šÃ‚Â"""
+    """결과 검증"""
     num_days = parsed_data['num_days']
     nurse_wallets = parsed_data['nurse_wallets']
     daily_wallet = parsed_data['daily_wallet']
@@ -126,7 +129,7 @@ def validate_result(result, parsed_data):
         'nurse_duty_counts': {}
     }
     
-    # ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒâ€šÃ‚Â¼ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â³ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾ ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â·Ãƒâ€šÃ‚Â¼ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â¬Ãƒâ€šÃ‚Â´ ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â¹Ãƒâ€šÃ‚Â´ÃƒÆ’Ã‚Â¬Ãƒâ€¦Ã‚Â¡Ãƒâ€šÃ‚Â´ÃƒÆ’Ã‚Â­Ãƒâ€¦Ã‚Â Ãƒâ€šÃ‚Â¸
+    # toClaude: KOREAN_PROTECTED - 일별 근무 카운트 확인
     for day in range(1, num_days + 1):
         day_count = defaultdict(int)
         
@@ -145,7 +148,7 @@ def validate_result(result, parsed_data):
                     f"Day {day} {duty}: expected {expected}, got {actual}"
                 )
     
-    # ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â°ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾ÃƒÆ’Ã‚Â­Ãƒâ€¹Ã…â€œÃƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â³ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾ ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â·Ãƒâ€šÃ‚Â¼ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â¬Ãƒâ€šÃ‚Â´ ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â¹Ãƒâ€šÃ‚Â´ÃƒÆ’Ã‚Â¬Ãƒâ€¦Ã‚Â¡Ãƒâ€šÃ‚Â´ÃƒÆ’Ã‚Â­Ãƒâ€¦Ã‚Â Ãƒâ€šÃ‚Â¸
+    # toClaude: KOREAN_PROTECTED - 간호사별 근무 카운트 확인
     for nurse, schedule in result.items():
         duty_count = defaultdict(int)
         
@@ -156,7 +159,7 @@ def validate_result(result, parsed_data):
         
         validation['nurse_duty_counts'][nurse] = dict(duty_count)
         
-        # nurse_wallet ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â§Ãƒâ€¦Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â¡Ãƒâ€šÃ‚Â± ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬ÂÃƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â¶ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ (ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â±1 ÃƒÆ’Ã‚Â­ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬ÂÃƒâ€¹Ã¢â‚¬Â ÃƒÆ’Ã‚Â¬Ãƒâ€¦Ã‚Â¡Ãƒâ€šÃ‚Â©)
+        # toClaude: KOREAN_PROTECTED - nurse_wallet 만족 여부 (±1 허용)
         if nurse in nurse_wallets:
             for duty in ['D', 'E', 'N', 'X']:
                 expected = nurse_wallets[nurse][duty]
@@ -165,10 +168,10 @@ def validate_result(result, parsed_data):
                 if not (expected - 1 <= actual <= expected + 1):
                     validation['nurse_wallet_satisfied'] = False
                     validation['nurse_violations'].append(
-                        f"{nurse} {duty}: expected {expected}ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â±1, got {actual}"
+                        f"{nurse} {duty}: expected {expected}±1, got {actual}"
                     )
             
-            # NÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬ÂÃƒâ€šÃ‚Â ÃƒÆ’Ã‚Â«Ãƒâ€¦Ã¢â‚¬â„¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â­ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬ÂÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â²Ãƒâ€šÃ‚Â©ÃƒÆ’Ã‚Â­ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â²ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â¦Ãƒâ€šÃ‚Â
+            # toClaude: KOREAN_PROTECTED - N의 남은횟수 사전검증 확인
             if 'N' in duty_count:
                 expected_N = nurse_wallets[nurse]['N']
                 actual_N = duty_count['N']
@@ -177,7 +180,7 @@ def validate_result(result, parsed_data):
                 if remaining_N >= 2:
                     validation['nurse_wallet_satisfied'] = False
                     validation['nurse_violations'].append(
-                        f"{nurse}: N ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â¶ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â¡Ãƒâ€šÃ‚Â± (ÃƒÆ’Ã‚Â«ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ N: {remaining_N}, ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚ÂªÃƒâ€šÃ‚Â©ÃƒÆ’Ã‚Â­ÃƒÂ¢Ã¢â€šÂ¬Ã‹Å“Ãƒâ€¦Ã¢â‚¬Å“: <=1)"
+                        f"{nurse}: N 부족 (남은 N: {remaining_N}, 목표: <=1)"
                     )
     
     return validation
@@ -187,18 +190,19 @@ def validate_result(result, parsed_data):
 # Parse Input
 # ========================================
 
+# toClaude: KOREAN_PROTECTED - No sed, use str_replace only
 def parse_input(input_json):
-    """JSON ÃƒÆ’Ã‚Â¬Ãƒâ€¦Ã‚Â¾ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â Ãƒâ€šÃ‚Â¥ ÃƒÆ’Ã‚Â­Ãƒâ€¦Ã¢â‚¬â„¢Ãƒâ€¦Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹Ãƒâ€šÃ‚Â± ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â°Ãƒâ€šÃ‚Â wallet ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â³ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â°"""
+    """JSON 입력 파싱 및 wallet 계산"""
     data = json.loads(input_json)
     
     year = data['year']
     month = data['month']
     num_days = calendar.monthrange(year, month)[1]
     
-    # ÃƒÆ’Ã‚Â«Ãƒâ€¦Ã¢â‚¬â„¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â­ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â¯Ãƒâ€šÃ‚Â¼ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚ÂµÃƒâ€šÃ‚Â­ ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â³Ãƒâ€šÃ‚ÂµÃƒÆ’Ã‚Â­Ãƒâ€¦Ã¢â‚¬Å“Ãƒâ€šÃ‚Â´ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒâ€šÃ‚Â¼
+    # toClaude: KOREAN_PROTECTED - 대한민국 공휴일
     kr_holidays = holidays.KR(years=year)
     
-    # daily_wallet ÃƒÆ’Ã‚Â¬Ãƒâ€ Ã¢â‚¬â„¢Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€šÃ‚Â±
+    # toClaude: KOREAN_PROTECTED - daily_wallet 생성
     daily_wallet_config = data.get('daily_wallet_config', {})
     weekday_wallet = daily_wallet_config.get('weekday', {})
     weekend_wallet = daily_wallet_config.get('weekend', {})
@@ -213,11 +217,11 @@ def parse_input(input_json):
         else:
             daily_wallet[day] = dict(weekday_wallet)
     
-    # nurse_wallet ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â³ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â°
+    # toClaude: KOREAN_PROTECTED - nurse_wallet 계산
     nurses_data = data['nurses']
     nurse_count = len(nurses_data)
     
-    # Keep ÃƒÆ’Ã‚Â­Ãƒâ€ Ã¢â‚¬â„¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¬Ãƒâ€¦Ã‚Â¾ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â³ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾ ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â°ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾ÃƒÆ’Ã‚Â­Ãƒâ€¹Ã…â€œÃƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ ÃƒÆ’Ã‚Â¬Ãƒâ€¹Ã¢â‚¬Â Ãƒâ€¹Ã…â€œ ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â¹Ãƒâ€šÃ‚Â´ÃƒÆ’Ã‚Â¬Ãƒâ€¦Ã‚Â¡Ãƒâ€šÃ‚Â´ÃƒÆ’Ã‚Â­Ãƒâ€¦Ã‚Â Ãƒâ€šÃ‚Â¸
+    # toClaude: KOREAN_PROTECTED - Keep 타입별 간호사 위치 확인
     all_nurses = []
     day_keep_nurses = []
     night_keep_nurses = []
@@ -226,9 +230,9 @@ def parse_input(input_json):
         name = nurse_data['name']
         keep_type = nurse_data.get('keep_type', 'All')
         
-        if keep_type == 'DayÃƒÆ’Ã‚Â£ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦Ãƒâ€šÃ‚Â¤':
+        if keep_type == 'Day고정':
             day_keep_nurses.append(name)
-        elif keep_type == 'NightÃƒÆ’Ã‚Â£ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦Ãƒâ€šÃ‚Â¤':
+        elif keep_type == 'Night고정':
             night_keep_nurses.append(name)
         else:
             all_nurses.append(name)
@@ -237,68 +241,72 @@ def parse_input(input_json):
     num_night_keep = len(night_keep_nurses)
     num_all = len(all_nurses)
     
-    print(f"[DEBUG] Keep ÃƒÆ’Ã‚Â­Ãƒâ€ Ã¢â‚¬â„¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¬Ãƒâ€¦Ã‚Â¾ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â¶ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾ÃƒÆ’Ã‚Â­Ãƒâ€šÃ‚ÂÃƒâ€šÃ‚Â¬: All={num_all}, DayÃƒÆ’Ã‚Â£ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦Ãƒâ€šÃ‚Â¤={num_day_keep}, NightÃƒÆ’Ã‚Â£ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦Ãƒâ€šÃ‚Â¤={num_night_keep}", file=sys.stderr)
+    # toClaude: KOREAN_PROTECTED - Keep 타입별 분류
+    print(f"[DEBUG] Keep 타입별 분류: All={num_all}, Day고정={num_day_keep}, Night고정={num_night_keep}", file=sys.stderr)
     
-    # ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒâ€šÃ‚Â´ D, E, N, X ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â³ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â°
+    # toClaude: KOREAN_PROTECTED - 월 D, E, N, X 계산
     total_D = sum(daily_wallet[day]['D'] for day in range(1, num_days + 1))
     total_E = sum(daily_wallet[day]['E'] for day in range(1, num_days + 1))
     total_N = sum(daily_wallet[day]['N'] for day in range(1, num_days + 1))
     total_X = sum(daily_wallet[day]['X'] for day in range(1, num_days + 1))
     
-    print(f"[DEBUG] ÃƒÆ’Ã‚Â­ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾ÃƒÆ’Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒâ€šÃ‚Â´ÃƒÆ’Ã‚Â­ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢Ãƒâ€šÃ‚Â©: D={total_D}, E={total_E}, N={total_N}, X={total_X}", file=sys.stderr)
+    # toClaude: KOREAN_PROTECTED - 합계 월별필요
+    print(f"[DEBUG] 합계 월별필요: D={total_D}, E={total_E}, N={total_N}, X={total_X}", file=sys.stderr)
     
-    # nurse_wallets ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â³ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â°
+    # toClaude: KOREAN_PROTECTED - nurse_wallets 계산
     nurse_wallets = {}
     
-    # DayÃƒÆ’Ã‚Â£ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦Ãƒâ€šÃ‚Â¤: DÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â§Ãƒâ€¦Ã¢â‚¬â„¢, E/N=0
+    # toClaude: KOREAN_PROTECTED - Day고정: D만, E/N=0
     for name in day_keep_nurses:
         nurse_wallets[name] = {
             'D': num_days,
             'E': 0,
             'N': 0,
-            'X': 2  # ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬ÂÃƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“Ãƒâ€šÃ‚Â ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â¶ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾
+            'X': 2  # 주당 분할
         }
     
-    # NightÃƒÆ’Ã‚Â£ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦Ãƒâ€šÃ‚Â¤: N=15, D/E=0
+    # toClaude: KOREAN_PROTECTED - Night고정: N=15, D/E=0
     for name in night_keep_nurses:
         nurse_wallets[name] = {
             'D': 0,
             'E': 0,
             'N': 15,
-            'X': num_days - 15 + 2  # ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬ÂÃƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“Ãƒâ€šÃ‚Â ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â¶ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾
+            'X': num_days - 15 + 2  # 주당 분할
         }
     
-    # All ÃƒÆ’Ã‚Â­Ãƒâ€ Ã¢â‚¬â„¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¬Ãƒâ€¦Ã‚Â¾ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦: ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â·Ãƒâ€šÃ‚Â ÃƒÆ’Ã‚Â«ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒâ€šÃ‚Â± ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â¶ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â°Ãƒâ€šÃ‚Â° + N+1, X+1 ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬ÂÃƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“Ãƒâ€šÃ‚Â ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â¶ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾
+    # toClaude: KOREAN_PROTECTED - All 타입별: 균등 분배 + N+1, X+1 주당 분할
     if num_all > 0:
-        # DayÃƒÆ’Ã‚Â£ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦Ãƒâ€šÃ‚Â¤ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒâ€šÃ‚Â´ ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¬Ãƒâ€¦Ã‚Â¡Ãƒâ€šÃ‚Â©ÃƒÆ’Ã‚Â­ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÆ’Ã‚Â«Ãƒâ€¦Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒâ€šÃ‚Â´ D
+        # toClaude: KOREAN_PROTECTED - Day고정의 사용량에 따른 월 D
         day_keep_total_D = num_day_keep * num_days
         
-        # NightÃƒÆ’Ã‚Â£ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦Ãƒâ€šÃ‚Â¤ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒâ€šÃ‚Â´ ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¬Ãƒâ€¦Ã‚Â¡Ãƒâ€šÃ‚Â©ÃƒÆ’Ã‚Â­ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÆ’Ã‚Â«Ãƒâ€¦Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒâ€šÃ‚Â´ N
+        # toClaude: KOREAN_PROTECTED - Night고정의 사용량에 따른 월 N
         night_keep_total_N = num_night_keep * 15
         
-        # All ÃƒÆ’Ã‚Â­Ãƒâ€ Ã¢â‚¬â„¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¬Ãƒâ€¦Ã‚Â¾ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒâ€šÃ‚Â´ ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¬Ãƒâ€¦Ã‚Â¡Ãƒâ€šÃ‚Â©ÃƒÆ’Ã‚Â­ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢Ãƒâ€šÃ‚Â´ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢Ãƒâ€šÃ‚Â¼ ÃƒÆ’Ã‚Â­ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÆ’Ã‚Â«Ãƒâ€¦Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â D, E, N, X
+        # toClaude: KOREAN_PROTECTED - All 타입별의 사용량이야 할당해 D, E, N, X
         all_total_D = total_D - day_keep_total_D
         all_total_E = total_E
         all_total_N = total_N - night_keep_total_N
         all_total_X = total_X
         
-        print(f"[DEBUG] All ÃƒÆ’Ã‚Â­Ãƒâ€ Ã¢â‚¬â„¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¬Ãƒâ€¦Ã‚Â¾ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒâ€šÃ‚Â´ ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¬Ãƒâ€¦Ã‚Â¡Ãƒâ€šÃ‚Â©ÃƒÆ’Ã‚Â­ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢Ãƒâ€šÃ‚Â´ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢Ãƒâ€šÃ‚Â¼ ÃƒÆ’Ã‚Â­ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÆ’Ã‚Â«Ãƒâ€¦Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â·Ãƒâ€šÃ‚Â¼ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â¬Ãƒâ€šÃ‚Â´: D={all_total_D}, E={all_total_E}, N={all_total_N}, X={all_total_X}", file=sys.stderr)
+        # toClaude: KOREAN_PROTECTED - All 타입별의 사용량이야 할당해 균등
+        print(f"[DEBUG] All 타입별의 사용량이야 할당해 균등: D={all_total_D}, E={all_total_E}, N={all_total_N}, X={all_total_X}", file=sys.stderr)
         
-        # nurse_wallet_minÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬ÂÃƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€¦Ã¢â‚¬Å“ min_N ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â°ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â¬Ãƒâ€¹Ã…â€œÃƒâ€šÃ‚Â¤ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â¸Ãƒâ€šÃ‚Â°
+        # toClaude: KOREAN_PROTECTED - nurse_wallet_min에서 min_N 가져오기
         nurse_wallet_min = data.get('nurse_wallet_min', {})
         min_N = nurse_wallet_min.get('N', 6)
         
-        # ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â·Ãƒâ€šÃ‚Â ÃƒÆ’Ã‚Â«ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒâ€šÃ‚Â± ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â¶ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â°Ãƒâ€šÃ‚Â°
+        # toClaude: KOREAN_PROTECTED - 균등 분배
         per_nurse_D = all_total_D // num_all
         per_nurse_E = all_total_E // num_all
         per_nurse_N = min_N + 1  # N+1
         per_nurse_X = (all_total_X // num_all) + 1  # X+1
         
-        # ÃƒÆ’Ã‚Â«ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€¹Ã…â€œÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â¨Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â§ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â¶ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â°Ãƒâ€šÃ‚Â°
+        # toClaude: KOREAN_PROTECTED - 나머지 분배
         remainder_D = all_total_D % num_all
         remainder_E = all_total_E % num_all
         
-        print(f"[DEBUG] ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â¸Ãƒâ€šÃ‚Â°ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â³Ãƒâ€šÃ‚Â¸ ÃƒÆ’Ã‚Â­ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢Ãƒâ€šÃ‚Â ÃƒÆ’Ã‚Â«ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹Ãƒâ€šÃ‚Â¹: D={per_nurse_D}, E={per_nurse_E}, N={per_nurse_N}(min+1), X={per_nurse_X}(+1)", file=sys.stderr)
+        # toClaude: KOREAN_PROTECTED - 기본 할당
+        print(f"[DEBUG] 기본 할당: D={per_nurse_D}, E={per_nurse_E}, N={per_nurse_N}(min+1), X={per_nurse_X}(+1)", file=sys.stderr)
         
         for i, name in enumerate(all_nurses):
             d_count = per_nurse_D + (1 if i < remainder_D else 0)
@@ -314,11 +322,12 @@ def parse_input(input_json):
             }
 
     
-    print("[DEBUG] nurse_wallets ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â³ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â° ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â£Ãƒâ€¦Ã¢â‚¬â„¢:", file=sys.stderr)
+    # toClaude: KOREAN_PROTECTED - nurse_wallets 계산 완료
+    print("[DEBUG] nurse_wallets 계산 완료:", file=sys.stderr)
     for name, wallet in nurse_wallets.items():
         print(f"  {name}: {wallet}", file=sys.stderr)
     
-    # ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹Ãƒâ€šÃ‚Â ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â·Ãƒâ€¦Ã¢â‚¬Å“/ÃƒÆ’Ã‚Â­ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¡Ãƒâ€šÃ‚Â´ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â°ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾ÃƒÆ’Ã‚Â­Ãƒâ€¹Ã…â€œÃƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ wallet ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â¡Ãƒâ€šÃ‚Â°ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢
+    # toClaude: KOREAN_PROTECTED - 신규/퇴사 간호사 wallet 조정
     new_nurses_list = data.get('new', [])
     quit_nurses_list = data.get('quit', [])
     
@@ -329,18 +338,18 @@ def parse_input(input_json):
         n_count = new_data.get('n_count', 0)
         
         
-        # start_dayê°€ Noneì´ë©´ ê±´ë„ˆë›°ê¸°
+        # toClaude: KOREAN_PROTECTED - start_day가 None이면 건너뛰기
         if start_day is None:
-            print(f"[WARNING] ì‹ ê·œ ê°„í˜¸ì‚¬ {name}ì˜ start_dayê°€ ì—†ì–´ì„œ ê±´ë„ˆëœë‹ˆë‹¤", file=sys.stderr)
+            print(f"[WARNING] 신규 간호사 {name}의 start_day가 없어서 건너뜁니다", file=sys.stderr)
             continue
         
         work_days = num_days - start_day + 1
         
-        # ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹Ãƒâ€šÃ‚Â ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â·Ãƒâ€¦Ã¢â‚¬Å“: XÃƒÆ’Ã‚Â«Ãƒâ€¦Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â¶Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â·Ãƒâ€šÃ‚Â¼ ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾, NÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â§ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â°ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢
+        # toClaude: KOREAN_PROTECTED - 신규: X로 출근 전, N의 지정값
         nurse_wallets[name]['X'] = start_day - 1 + nurse_wallets[name]['X']
         nurse_wallets[name]['N'] = n_count
         
-        # D, E ÃƒÆ’Ã‚Â¬Ãƒâ€¦Ã‚Â¾Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â³ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â°
+        # toClaude: KOREAN_PROTECTED - D, E 재계산
         remaining = work_days - n_count
         nurse_wallets[name]['D'] = remaining // 2
         nurse_wallets[name]['E'] = remaining - nurse_wallets[name]['D']
@@ -354,25 +363,25 @@ def parse_input(input_json):
         n_count = quit_data.get('n_count', 0)
         
         
-        # last_dayê°€ Noneì´ë©´ ê±´ë„ˆë›°ê¸°
+        # toClaude: KOREAN_PROTECTED - last_day가 None이면 건너뛰기
         if last_day is None:
-            print(f"[WARNING] í‡´ì‚¬ ê°„í˜¸ì‚¬ {name}ì˜ last_dayê°€ ì—†ì–´ì„œ ê±´ë„ˆëœë‹ˆë‹¤", file=sys.stderr)
+            print(f"[WARNING] 퇴사 간호사 {name}의 last_day가 없어서 건너뜁니다", file=sys.stderr)
             continue
         
         work_days = last_day
         
-        # ÃƒÆ’Ã‚Â­ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¡Ãƒâ€šÃ‚Â´ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬: XÃƒÆ’Ã‚Â«Ãƒâ€¦Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â­ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¡Ãƒâ€šÃ‚Â´ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ ÃƒÆ’Ã‚Â­ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂºÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾, NÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â§ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â°ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢
+        # toClaude: KOREAN_PROTECTED - 퇴사: X로 퇴사 후, N의 지정값
         nurse_wallets[name]['X'] += (num_days - last_day)
         nurse_wallets[name]['N'] = n_count
         
-        # D, E ÃƒÆ’Ã‚Â¬Ãƒâ€¦Ã‚Â¾Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â³ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â°
+        # toClaude: KOREAN_PROTECTED - D, E 재계산
         remaining = work_days - n_count
         nurse_wallets[name]['D'] = remaining // 2
         nurse_wallets[name]['E'] = remaining - nurse_wallets[name]['D']
         
         quit_nurses[name] = {'last_day': last_day, 'n_count': n_count}
     
-    # preferencesÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬ÂÃƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€¦Ã¢â‚¬Å“ ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â°Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â°Ãƒâ€šÃ‚Â
+    # toClaude: KOREAN_PROTECTED - preferences에서 참조
     preferences = data.get('preferences', [])
     for pref in preferences:
         name = pref['name']
@@ -383,11 +392,12 @@ def parse_input(input_json):
                 if duty in nurse_wallets[name]:
                     nurse_wallets[name][duty] -= 1
     
-    print("[DEBUG] ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹Ãƒâ€šÃ‚Â ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â·Ãƒâ€¦Ã¢â‚¬Å“/ÃƒÆ’Ã‚Â­ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¡Ãƒâ€šÃ‚Â´ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬/ÃƒÆ’Ã‚Â­Ãƒâ€šÃ‚ÂÃƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â§Ãƒâ€šÃ‚Â ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â°Ãƒâ€¹Ã…â€œÃƒÆ’Ã‚Â¬Ãƒâ€¹Ã…â€œÃƒâ€šÃ‚Â ÃƒÆ’Ã‚Â­ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂºÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾ nurse_wallets:", file=sys.stderr)
+    # toClaude: KOREAN_PROTECTED - 신규/퇴사/희망 반영 후 nurse_wallets
+    print("[DEBUG] 신규/퇴사/희망 반영 후 nurse_wallets:", file=sys.stderr)
     for name, wallet in nurse_wallets.items():
         print(f"  {name}: {wallet}", file=sys.stderr)
     
-    # ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â²ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â¦Ãƒâ€šÃ‚Â ÃƒÆ’Ã‚Â¬Ãƒâ€¹Ã¢â‚¬Â Ãƒâ€¹Ã…â€œÃƒÆ’Ã‚Â­ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°
+    # toClaude: KOREAN_PROTECTED - 검증 실행
     parsed_data = {
         'year': year,
         'month': month,
@@ -402,7 +412,7 @@ def parse_input(input_json):
     
     errors = validate_input(data, parsed_data)
     if errors:
-        raise ValueError("ÃƒÆ’Ã‚Â¬Ãƒâ€¦Ã‚Â¾ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â Ãƒâ€šÃ‚Â¥ ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â²ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â¦Ãƒâ€šÃ‚Â ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹Ãƒâ€šÃ‚Â¤ÃƒÆ’Ã‚Â­Ãƒâ€¦Ã¢â‚¬â„¢Ãƒâ€šÃ‚Â¨:\n" + "\n".join(f"  - {e}" for e in errors))
+        raise ValueError("입력 검증 실패:\n" + "\n".join(f"  - {e}" for e in errors))
     
     return parsed_data
 
@@ -411,8 +421,9 @@ def parse_input(input_json):
 # CP-SAT Solver
 # ========================================
 
+# toClaude: KOREAN_PROTECTED - No sed, use str_replace only
 def solve_cpsat(parsed_data):
-    """CP-SATÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â¡Ãƒâ€¦Ã¢â‚¬Å“ ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â·Ãƒâ€šÃ‚Â¼ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â¬Ãƒâ€šÃ‚Â´ÃƒÆ’Ã‚Â­ÃƒÂ¢Ã¢â€šÂ¬Ã‹Å“Ãƒâ€¦Ã¢â‚¬Å“ ÃƒÆ’Ã‚Â¬Ãƒâ€ Ã¢â‚¬â„¢Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€šÃ‚Â±"""
+    """CP-SAT로 근무표 생성"""
     year = parsed_data['year']
     month = parsed_data['month']
     num_days = parsed_data['num_days']
@@ -423,7 +434,8 @@ def solve_cpsat(parsed_data):
     preferences = parsed_data['preferences']
     nurses_data = parsed_data['nurses_data']
     
-    print(f"[DEBUG] CP-SAT ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã‚Â¬Ãƒâ€¦Ã‚Â¾ÃƒÂ¢Ã¢â€šÂ¬Ã‹Å“: {year}ÃƒÆ’Ã‚Â«ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾ {month}ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂºÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ({num_days}ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒâ€šÃ‚Â¼)", file=sys.stderr)
+    # toClaude: KOREAN_PROTECTED - CP-SAT 시작
+    print(f"[DEBUG] CP-SAT 시작: {year}년 {month}월 ({num_days}일)", file=sys.stderr)
     
     nurses = list(nurse_wallets.keys())
     days = list(range(1, num_days + 1))
@@ -431,7 +443,7 @@ def solve_cpsat(parsed_data):
     
     model = cp_model.CpModel()
     
-    # ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â³ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¬Ãƒâ€¹Ã¢â‚¬Â Ãƒâ€¹Ã…â€œ ÃƒÆ’Ã‚Â¬Ãƒâ€ Ã¢â‚¬â„¢Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€šÃ‚Â±
+    # toClaude: KOREAN_PROTECTED - 변수 생성
     x = {}
     for nurse in nurses:
         x[nurse] = {}
@@ -440,17 +452,17 @@ def solve_cpsat(parsed_data):
             for duty in duties:
                 x[nurse][day][duty] = model.NewBoolVar(f'{nurse}_d{day}_{duty}')
     
-    # ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢Ãƒâ€šÃ‚Â½ 1: ÃƒÆ’Ã‚Â­ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â£Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬ÂÃƒâ€šÃ‚Â ÃƒÆ’Ã‚Â­ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÆ’Ã‚Â«ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€¹Ã…â€œÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒâ€¹Ã…â€œ ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â·Ãƒâ€šÃ‚Â¼ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â¬Ãƒâ€šÃ‚Â´ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â§Ãƒâ€¦Ã¢â‚¬â„¢
+    # toClaude: KOREAN_PROTECTED - 제약 1: 하루에 하나의 근무만
     for nurse in nurses:
         for day in days:
             model.Add(sum(x[nurse][day][duty] for duty in duties) == 1)
     
-    # ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢Ãƒâ€šÃ‚Â½ 2: daily_wallet ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â§Ãƒâ€¦Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â¡Ãƒâ€šÃ‚Â±
+    # toClaude: KOREAN_PROTECTED - 제약 2: daily_wallet 만족
     for day in days:
         for duty in duties:
             model.Add(sum(x[nurse][day][duty] for nurse in nurses) == daily_wallet[day][duty])
     
-    # ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢Ãƒâ€šÃ‚Â½ 3: nurse_wallet ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â§Ãƒâ€¦Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â¡Ãƒâ€šÃ‚Â± (ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â±1 ÃƒÆ’Ã‚Â­ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬ÂÃƒâ€¹Ã¢â‚¬Â ÃƒÆ’Ã‚Â¬Ãƒâ€¦Ã‚Â¡Ãƒâ€šÃ‚Â©)
+    # toClaude: KOREAN_PROTECTED - 제약 3: nurse_wallet 만족 (±1 허용)
     for nurse in nurses:
         for duty in duties:
             target = nurse_wallets[nurse][duty]
@@ -458,7 +470,7 @@ def solve_cpsat(parsed_data):
             model.Add(actual >= target - 1)
             model.Add(actual <= target + 1)
     
-    # ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢Ãƒâ€šÃ‚Â½ 4: ÃƒÆ’Ã‚Â­Ãƒâ€šÃ‚ÂÃƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â§Ãƒâ€šÃ‚Â ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â·Ãƒâ€šÃ‚Â¼ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â¬Ãƒâ€šÃ‚Â´ ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â³Ãƒâ€šÃ‚Â ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢
+    # toClaude: KOREAN_PROTECTED - 제약 4: 희망 근무 고정
     pref_dict = {}
     for pref in preferences:
         name = pref['name']
@@ -472,51 +484,51 @@ def solve_cpsat(parsed_data):
                 if day in days:
                     model.Add(x[nurse][day][duty] == 1)
     
-    # ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢Ãƒâ€šÃ‚Â½ 5: ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹Ãƒâ€šÃ‚Â ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â·Ãƒâ€¦Ã¢â‚¬Å“ ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â°ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾ÃƒÆ’Ã‚Â­Ãƒâ€¹Ã…â€œÃƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬
+    # toClaude: KOREAN_PROTECTED - 제약 5: 신규 간호사
     for name, data in new_nurses.items():
         start_day = data['start_day']
-        # ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â¶Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â·Ãƒâ€šÃ‚Â¼ ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾: X
+        # toClaude: KOREAN_PROTECTED - 출근 전: X
         for day in range(1, start_day):
             if day in days:
                 model.Add(x[name][day]['X'] == 1)
-        # ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â²Ãƒâ€šÃ‚Â«ÃƒÆ’Ã‚Â«ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â : D
+        # toClaude: KOREAN_PROTECTED - 첫날: D
         if start_day in days:
             model.Add(x[name][start_day]['D'] == 1)
     
-    # ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢Ãƒâ€šÃ‚Â½ 6: ÃƒÆ’Ã‚Â­ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¡Ãƒâ€šÃ‚Â´ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â°ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾ÃƒÆ’Ã‚Â­Ãƒâ€¹Ã…â€œÃƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬
+    # toClaude: KOREAN_PROTECTED - 제약 6: 퇴사 간호사
     for name, data in quit_nurses.items():
         last_day = data['last_day']
-        # ÃƒÆ’Ã‚Â­ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¡Ãƒâ€šÃ‚Â´ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ ÃƒÆ’Ã‚Â­ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂºÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾: X
+        # toClaude: KOREAN_PROTECTED - 퇴사 후: X
         for day in range(last_day, num_days + 1):
             if day in days:
                 model.Add(x[name][day]['X'] == 1)
     
-    # ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢Ãƒâ€šÃ‚Â½ 7: Keep ÃƒÆ’Ã‚Â­Ãƒâ€ Ã¢â‚¬â„¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¬Ãƒâ€¦Ã‚Â¾ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦
+    # toClaude: KOREAN_PROTECTED - 제약 7: Keep 타입별
     for nurse_data in nurses_data:
         name = nurse_data['name']
         keep_type = nurse_data.get('keep_type', 'All')
         
-        if keep_type == 'DayÃƒÆ’Ã‚Â£ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦Ãƒâ€šÃ‚Â¤':
-            # E, N ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢Ãƒâ€šÃ‚Â¸
+        if keep_type == 'Day고정':
+            # toClaude: KOREAN_PROTECTED - E, N 제외
             for day in days:
                 model.Add(x[name][day]['E'] == 0)
                 model.Add(x[name][day]['N'] == 0)
         
-        elif keep_type == 'NightÃƒÆ’Ã‚Â£ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦Ãƒâ€šÃ‚Â¤':
-            # D, E ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢Ãƒâ€šÃ‚Â¸
+        elif keep_type == 'Night고정':
+            # toClaude: KOREAN_PROTECTED - D, E 제외
             for day in days:
                 model.Add(x[name][day]['D'] == 0)
                 model.Add(x[name][day]['E'] == 0)
     
-    # Ã¬Â Å“Ã¬â€¢Â½ 8: zRule (Ã«ÂªÂ¨Ã«â€œÂ  3Ã¬ÂÂ¼ Ã¬â€”Â°Ã¬â€ Â ÃªÂµÂ¬ÃªÂ°â€ž ÃªÂ²â‚¬Ã¬â€šÂ¬)
-    # zÃªÂ°â€™ ÃªÂ³â€žÃ¬â€šÂ°: 16*Ã¬Â²Â«Ã«â€šÂ  + 4*Ã«â€˜ËœÃ¬Â§Â¸Ã«â€šÂ  + 1*Ã¬â€¦â€¹Ã¬Â§Â¸Ã«â€šÂ 
-    # ÃªÂµÂ¬ÃªÂ°â€ž: (-3,-2,-1), (-2,-1,1), (-1,1,2), (1,2,3), ..., (29,30,31)
+    # toClaude: KOREAN_PROTECTED - 제약 8: zRule (모든 3일 연속 구간 검사)
+    # toClaude: KOREAN_PROTECTED - z값 계산: 16*첫날 + 4*둘째날 + 1*셋째날
+    # toClaude: KOREAN_PROTECTED - 구간: (-3,-2,-1), (-2,-1,1), (-1,1,2), (1,2,3), ..., (29,30,31)
     
     for nurse in nurses:
         nurse_data = next(n for n in nurses_data if n['name'] == nurse)
         past_3days = nurse_data['past_3days']
         
-        # Ã«ÂªÂ¨Ã«â€œÂ  3Ã¬ÂÂ¼ Ã¬â€”Â°Ã¬â€ Â ÃªÂµÂ¬ÃªÂ°â€ž Ã¬Æ’ÂÃ¬â€žÂ±
+        # toClaude: KOREAN_PROTECTED - 모든 3일 연속 구간 생성
         all_windows = []
         all_windows.append((-3, -2, -1))
         all_windows.append((-2, -1, 1))
@@ -524,29 +536,25 @@ def solve_cpsat(parsed_data):
         for start in range(1, num_days - 1):
             all_windows.append((start, start + 1, start + 2))
         
-        # ÃªÂ°Â 3Ã¬ÂÂ¼ ÃªÂµÂ¬ÃªÂ°â€žÃ¬â€”Â zRule Ã¬Â ÂÃ¬Å¡Â©
+        # toClaude: KOREAN_PROTECTED - 각 3일 구간에 zRule 적용
         for d1, d2, d3 in all_windows:
-            # Ã«â€¹Â¤Ã¬ÂÅ’ ÃªÂ·Â¼Ã«Â¬Â´Ã¬ÂÂ¼ ÃªÂ³â€žÃ¬â€šÂ°
-            # 다음 근무일 계산 (특수: d3=-1이면 next_day=1)
-            if d3 == -1:
-                next_day = 1
-            else:
-                next_day = d3 + 1
+            # toClaude: KOREAN_PROTECTED - 다음 근무일 계산
+            next_day = d3 + 1
             if next_day < 1 or next_day > num_days:
                 continue
             
-            # ÃªÂ°Â Ã«â€šÂ Ã¬Â§Å“Ã¬ÂËœ ÃªÂ·Â¼Ã«Â¬Â´ Ã­Æ’â‚¬Ã¬Å¾â€¦
+            # toClaude: KOREAN_PROTECTED - 각 날짜 근무 타입
             duty_srcs = []
             for d in [d1, d2, d3]:
                 if d < 0:
-                    idx = d + 3  # -3Ã¢â€ â€™0, -2Ã¢â€ â€™1, -1Ã¢â€ â€™2
+                    idx = d + 3  # -3→0, -2→1, -1→2
                     duty_srcs.append(('fixed', past_3days[idx]))
                 else:
                     duty_srcs.append(('var', d))
             
-            # ëª¨ë“  ê°€ëŠ¥í•œ íŒ¨í„´(0~63) ê²€ì‚¬
+            # toClaude: KOREAN_PROTECTED - 모든 가능한 패턴(0~63) 검사
             for z_val in range(64):
-                # zê°’ â†’ íŒ¨í„´ ì—­ì‚°
+                # toClaude: KOREAN_PROTECTED - z값 → 패턴 역산
                 z_temp = z_val
                 req = []
                 req.append(["D", "E", "N", "X"][z_temp % 4])  # d3
@@ -556,7 +564,7 @@ def solve_cpsat(parsed_data):
                 req.append(["D", "E", "N", "X"][z_temp % 4])  # d1
                 req.reverse()  # [d1, d2, d3]
                 
-                # ë§¤ì¹­ í™•ì¸
+                # toClaude: KOREAN_PROTECTED - 매칭 확인
                 match_vars = []
                 fixed_ok = True
                 
@@ -571,27 +579,27 @@ def solve_cpsat(parsed_data):
                 if not fixed_ok:
                     continue
                 
-                # Z_RULESì— ìžˆëŠ”ì§€ í™•ì¸
+                # toClaude: KOREAN_PROTECTED - Z_RULES에 있는지 확인
                 if z_val not in Z_RULES:
-                    # ê¸ˆì§€ëœ íŒ¨í„´: ì´ íŒ¨í„´ì´ ë°œìƒí•˜ì§€ ëª»í•˜ë„ë¡ ì œì•½
+                    # toClaude: KOREAN_PROTECTED - 금지된 패턴: 이 패턴이 발생하지 못하도록 제약
                     if len(match_vars) == 0:
-                        # fixed íŒ¨í„´ì´ ê¸ˆì§€ëœ íŒ¨í„´ â†’ ìž…ë ¥ ê²€ì¦ ì˜¤ë¥˜
-                        # (ì´ë¯¸ validate_inputì—ì„œ ê±¸ë ¤ì•¼ í•¨)
+                        # toClaude: KOREAN_PROTECTED - fixed 패턴이 금지된 패턴 → 입력 검증 오류
+                        # (이미 validate_input에서 걸려야 함)
                         pass
                     else:
-                        # ë³€ìˆ˜ í¬í•¨ â†’ ì´ íŒ¨í„´ì´ ë§¤ì¹­ë˜ì§€ ì•Šë„ë¡
+                        # toClaude: KOREAN_PROTECTED - 변수 포함 → 이 패턴이 매칭되지 않도록
                         match_all = model.NewBoolVar(f'forbidden_z_{nurse}_{d1}_{d2}_{d3}_{z_val}')
                         model.Add(sum(match_vars) == len(match_vars)).OnlyEnforceIf(match_all)
                         model.Add(sum(match_vars) < len(match_vars)).OnlyEnforceIf(match_all.Not())
                         
-                        # ê¸ˆì§€ëœ íŒ¨í„´ ë°œìƒ ê¸ˆì§€
+                        # toClaude: KOREAN_PROTECTED - 금지된 패턴 발생 금지
                         model.Add(match_all == 0)
                     continue
                 
-                # í—ˆìš©ëœ íŒ¨í„´: next_dayëŠ” allowedë§Œ
+                # toClaude: KOREAN_PROTECTED - 허용된 패턴: next_day는 allowed만
                 allowed = Z_RULES[z_val]
                 
-                # ì œì•½: íŒ¨í„´ ë§¤ì¹­ ì‹œ next_dayëŠ” allowedë§Œ
+                # toClaude: KOREAN_PROTECTED - 제약: 패턴 매칭 시 next_day는 allowed만
                 if len(match_vars) == 0:
                     for duty in duties:
                         if duty not in allowed:
@@ -609,23 +617,25 @@ def solve_cpsat(parsed_data):
 
     model.Minimize(0)
     
-    # ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â²ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾ ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹Ãƒâ€šÃ‚Â¤ÃƒÆ’Ã‚Â­ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°
+    # toClaude: KOREAN_PROTECTED - 솔버 실행
     solver = cp_model.CpSolver()
-    solver.parameters.max_time_in_seconds = 20.0  # Render timeout ëŒ€ì‘
-    solver.parameters.num_search_workers = 4  # ë©”ëª¨ë¦¬ ì ˆì•½
-    solver.parameters.log_search_progress = False  # ë¡œê·¸ ìµœì†Œí™”
+    solver.parameters.max_time_in_seconds = 20.0  # Render timeout 대응
+    solver.parameters.num_search_workers = 4  # 메모리 절약
+    solver.parameters.log_search_progress = False  # 로그 최소화
     
-    # ì¡°ê¸° ì‹¤íŒ¨ ê°ì§€
+    # toClaude: KOREAN_PROTECTED - 조기 실패 감지
     solver.parameters.cp_model_presolve = True
     solver.parameters.cp_model_probing_level = 2
     
-    print("[DEBUG] CP-SAT ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â²ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾ ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹Ãƒâ€šÃ‚Â¤ÃƒÆ’Ã‚Â­ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â° ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‹Å“...", file=sys.stderr)
+    # toClaude: KOREAN_PROTECTED - 솔버 실행 중
+    print("[DEBUG] CP-SAT 솔버 실행 중...", file=sys.stderr)
     status = solver.Solve(model)
     
     if status in [cp_model.OPTIMAL, cp_model.FEASIBLE]:
-        print(f"[DEBUG] ÃƒÆ’Ã‚Â­ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢Ãƒâ€šÃ‚Â´ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â²Ãƒâ€šÃ‚Â°ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â±ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â°Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â²Ãƒâ€šÃ‚Â¬! (status={status})", file=sys.stderr)
+        # toClaude: KOREAN_PROTECTED - 해결책 발견
+        print(f"[DEBUG] 해결책 발견! (status={status})", file=sys.stderr)
         
-        # ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â²Ãƒâ€šÃ‚Â°ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â³Ãƒâ€šÃ‚Â¼ ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â¶ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â¶Ãƒâ€¦Ã¢â‚¬Å“
+        # toClaude: KOREAN_PROTECTED - 결과 추출
         result = {}
         for nurse in nurses:
             result[nurse] = {}
@@ -645,37 +655,39 @@ def solve_cpsat(parsed_data):
         return result, solver
     
     else:
+        # toClaude: KOREAN_PROTECTED - 에러 메시지
         error_msg = {
-            cp_model.INFEASIBLE: "No feasible solution found (ì œì•½ ì¡°ê±´ì„ ë§Œì¡±í•˜ëŠ” í•´ê°€ ì—†ìŒ)",
-            cp_model.MODEL_INVALID: "Model is invalid (ëª¨ë¸ ì˜¤ë¥˜)",
-            cp_model.UNKNOWN: "Solver status unknown (ì‹œê°„ ì´ˆê³¼ ë˜ëŠ” ì•Œ ìˆ˜ ì—†ëŠ” ì˜¤ë¥˜)"
+            cp_model.INFEASIBLE: "No feasible solution found (제약 조건을 만족하는 해가 없음)",
+            cp_model.MODEL_INVALID: "Model is invalid (모델 오류)",
+            cp_model.UNKNOWN: "Solver status unknown (시간 초과 또는 알 수 없는 오류)"
         }.get(status, f"Solver failed with status {status}")
         
-        # ìž…ë ¥ ê°’ ìš”ì•½
+        # toClaude: KOREAN_PROTECTED - 입력 값 요약
         total_nurses = len(nurses)
         weekday_staff = daily_wallet.get('weekday', {})
         weekend_staff = daily_wallet.get('weekend', {})
         
         input_summary = [
-            f"Nurses: {total_nurses}ëª…",
+            f"Nurses: {total_nurses}명",
             f"Weekday staff: D={weekday_staff.get('D',0)}, E={weekday_staff.get('E',0)}, N={weekday_staff.get('N',0)}",
             f"Weekend staff: D={weekend_staff.get('D',0)}, E={weekend_staff.get('E',0)}, N={weekend_staff.get('N',0)}",
             f"Total weekday required: {sum(weekday_staff.values())}",
             f"Total weekend required: {sum(weekend_staff.values())}",
         ]
         
+        # toClaude: KOREAN_PROTECTED - 권장 조치
         suggestions = [
-            "ê°„í˜¸ì‚¬ ìˆ˜ê°€ ìš”êµ¬ ì¸ì›ë³´ë‹¤ ì ìœ¼ë©´ ë¶ˆê°€ëŠ¥í•©ë‹ˆë‹¤",
-            "í‰ì¼/ì£¼ë§ ì¸ì› í•©ê³„ê°€ ì „ì²´ ê°„í˜¸ì‚¬ ìˆ˜ì™€ ê°™ì€ì§€ í™•ì¸í•˜ì„¸ìš”",
-            "past_3daysê°€ ê¸ˆì§€ëœ íŒ¨í„´(N-D-N, D-N-D ë“±)ì´ë©´ ë‹¤ìŒë‚  ì œì•½ ìœ„ë°° ê°€ëŠ¥",
-            "nurse_walletì˜ ìµœì†Œ N ê°œìˆ˜ê°€ ë„ˆë¬´ ë§Žìœ¼ë©´ ë¶ˆê°€ëŠ¥í•©ë‹ˆë‹¤",
-            "í¬ë§ ê·¼ë¬´(preferences)ê°€ ë„ˆë¬´ ë§Žìœ¼ë©´ ì¶©ëŒ ê°€ëŠ¥ì„± ë†’ìŒ",
+            "간호사 수가 요구 인원보다 적으면 불가능합니다",
+            "평일/주말 인원 합계가 전체 간호사 수와 같은지 확인하세요",
+            "past_3days가 금지된 패턴(N-D-N, D-N-D 등)이면 다음날 제약 위배 가능",
+            "nurse_wallet의 최소 N 개수가 너무 많으면 불가능합니다",
+            "희망 근무(preferences)가 너무 많으면 충돌 가능성 높음",
         ]
         
         raise RuntimeError(
-            f"{error_msg}\n\nìž…ë ¥ ìš”ì•½:\n" + 
+            f"{error_msg}\n\n입력 요약:\n" + 
             "\n".join(f"  {s}" for s in input_summary) +
-            "\n\nê¶Œìž¥ ì¡°ì¹˜:\n" + 
+            "\n\n권장 조치:\n" + 
             "\n".join(f"  - {s}" for s in suggestions)
         )
 
@@ -684,21 +696,22 @@ def solve_cpsat(parsed_data):
 # Main
 # ========================================
 
+# toClaude: KOREAN_PROTECTED - No sed, use str_replace only
 def main():
-    """ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â©ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒâ€šÃ‚Â¸ ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹Ãƒâ€šÃ‚Â¤ÃƒÆ’Ã‚Â­ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°"""
+    """메인 실행"""
     if len(sys.argv) > 1:
         input_json = sys.argv[1]
     else:
         input_json = sys.stdin.read()
     
     try:
-        # ÃƒÆ’Ã‚Â­Ãƒâ€¦Ã¢â‚¬â„¢Ãƒâ€¦Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹Ãƒâ€šÃ‚Â± ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â°Ãƒâ€šÃ‚Â ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â²ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â¦Ãƒâ€šÃ‚Â
+        # toClaude: KOREAN_PROTECTED - 파싱 및 검증
         parsed_data = parse_input(input_json)
         
-        # ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â²ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾ ÃƒÆ’Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹Ãƒâ€šÃ‚Â¤ÃƒÆ’Ã‚Â­ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°
+        # toClaude: KOREAN_PROTECTED - 솔버 실행
         result, solver = solve_cpsat(parsed_data)
         
-        # ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â²Ãƒâ€šÃ‚Â°ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â³Ãƒâ€šÃ‚Â¼ ÃƒÆ’Ã‚ÂªÃƒâ€šÃ‚Â²ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â¦Ãƒâ€šÃ‚Â
+        # toClaude: KOREAN_PROTECTED - 결과 검증
         validation = validate_result(result, parsed_data)
         
         output = {
