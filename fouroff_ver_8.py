@@ -260,6 +260,11 @@ def parse_input(input_json):
     weekday_wallet = daily_wallet_config.get('weekday', {})
     weekend_wallet = daily_wallet_config.get('weekend', {})
     
+    # Debug: Log actual input values
+    print(f"[INPUT] daily_wallet_config: {daily_wallet_config}", file=sys.stderr)
+    print(f"[INPUT] weekday_wallet: {weekday_wallet}", file=sys.stderr)
+    print(f"[INPUT] weekend_wallet: {weekend_wallet}", file=sys.stderr)
+    
     daily_wallet = {}
     for day in range(1, num_days + 1):
         date = f"{year}-{month:02d}-{day:02d}"
@@ -269,6 +274,23 @@ def parse_input(input_json):
             daily_wallet[day] = dict(weekend_wallet)
         else:
             daily_wallet[day] = dict(weekday_wallet)
+    
+    # Validate daily_wallet is not empty
+    if not weekday_wallet or not all(k in weekday_wallet for k in ['D', 'E', 'N', 'X']):
+        raise ValueError(
+            f"daily_wallet_config.weekday is missing or incomplete.\n"
+            f"  Received: {weekday_wallet}\n"
+            f"  Expected: {{'D': int, 'E': int, 'N': int, 'X': int}}\n"
+            f"  Full config: {daily_wallet_config}"
+        )
+    
+    if not weekend_wallet or not all(k in weekend_wallet for k in ['D', 'E', 'N', 'X']):
+        raise ValueError(
+            f"daily_wallet_config.weekend is missing or incomplete.\n"
+            f"  Received: {weekend_wallet}\n"
+            f"  Expected: {{'D': int, 'E': int, 'N': int, 'X': int}}\n"
+            f"  Full config: {daily_wallet_config}"
+        )
     
     # Calculate nurse_wallet
     nurses_data = data['nurses']
@@ -712,17 +734,23 @@ def solve_cpsat(parsed_data):
             cp_model.UNKNOWN: "Solver status unknown (timeout or unknown error)"
         }.get(status, f"Solver failed with status {status}")
         
-        # Input summary
+        # Input summary - get actual daily_wallet values from day 1 (representative)
         total_nurses = len(nurses)
-        weekday_staff = daily_wallet.get('weekday', {})
-        weekend_staff = daily_wallet.get('weekend', {})
+        day1_wallet = daily_wallet.get(1, {})
+        
+        # Find first weekend day for weekend wallet
+        weekend_wallet = {}
+        for d in range(1, num_days + 1):
+            if calendar.weekday(year, month, d) >= 5:  # Saturday or Sunday
+                weekend_wallet = daily_wallet.get(d, {})
+                break
         
         input_summary = [
             f"Nurses: {total_nurses}",
-            f"Weekday staff: D={weekday_staff.get('D',0)}, E={weekday_staff.get('E',0)}, N={weekday_staff.get('N',0)}",
-            f"Weekend staff: D={weekend_staff.get('D',0)}, E={weekend_staff.get('E',0)}, N={weekend_staff.get('N',0)}",
-            f"Total weekday required: {sum(weekday_staff.values())}",
-            f"Total weekend required: {sum(weekend_staff.values())}",
+            f"Day1 wallet: D={day1_wallet.get('D',0)}, E={day1_wallet.get('E',0)}, N={day1_wallet.get('N',0)}, X={day1_wallet.get('X',0)}",
+            f"Weekend wallet: D={weekend_wallet.get('D',0)}, E={weekend_wallet.get('E',0)}, N={weekend_wallet.get('N',0)}, X={weekend_wallet.get('X',0)}",
+            f"Day1 total: {sum(day1_wallet.values()) if day1_wallet else 0}",
+            f"Weekend total: {sum(weekend_wallet.values()) if weekend_wallet else 0}",
         ]
         
         # Suggestions
@@ -781,14 +809,14 @@ def main():
         print(json.dumps({
             'status': 'validation_error',
             'message': str(e)
-        }, ensure_ascii=False, indent=2))  # stdout으로 출력
+        }, ensure_ascii=False, indent=2))  # stdoutìœ¼ë¡œ ì¶œë ¥
         sys.exit(1)
     
     except RuntimeError as e:
         print(json.dumps({
             'status': 'solver_error',
             'message': str(e)
-        }, ensure_ascii=False, indent=2))  # stdout으로 출력
+        }, ensure_ascii=False, indent=2))  # stdoutìœ¼ë¡œ ì¶œë ¥
         sys.exit(1)
     
     except Exception as e:
@@ -797,7 +825,7 @@ def main():
             'status': 'error',
             'message': str(e),
             'traceback': traceback.format_exc()
-        }, ensure_ascii=False, indent=2))  # stdout으로 출력
+        }, ensure_ascii=False, indent=2))  # stdoutìœ¼ë¡œ ì¶œë ¥
         sys.exit(1)
 
 
