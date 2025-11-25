@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
+# toClaude: KOREAN_PROTECTED - No sed, use str_replace only
 """
 render_api.py - Nurse Schedule API Server
-Supabase + Kakao OAuth + Ã«Â¡Å“ÃªÂ·Â¸Ã¬ÂÂ¸ Ã¬â€”â€ Ã¬ÂÂ´ Ã«Â°Â© Ã¬Æ’ÂÃ¬â€žÂ± Ã¬Â§â‚¬Ã¬â€ºÂ + ÃªÂ·Â¼Ã«Â¬Â´Ã­â€˜Å“ Ã¬Â â‚¬Ã¬Å¾Â¥
+Supabase + Kakao OAuth + 로그인 없이 방 생성 지원 + 근무표 저장
 """
 
 import os
@@ -17,7 +18,7 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
-# Supabase Ã¬Â´Ë†ÃªÂ¸Â°Ã­â„¢â€
+# toClaude: KOREAN_PROTECTED - Supabase 초기화
 SUPABASE_URL = os.environ.get('SUPABASE_URL')
 SUPABASE_KEY = os.environ.get('SUPABASE_KEY')
 KAKAO_REST_API_KEY = os.environ.get('KAKAO_REST_API_KEY')
@@ -34,8 +35,9 @@ print(f"[INFO] Supabase: {'enabled' if supabase else 'disabled'}")
 # Helper Functions
 # ========================================
 
+# toClaude: KOREAN_PROTECTED - No sed, use str_replace only
 def get_user_from_token(auth_header):
-    """Authorization Ã­â€”Â¤Ã«Ââ€Ã¬â€”ÂÃ¬â€žÅ“ Ã¬â€šÂ¬Ã¬Å¡Â©Ã¬Å¾Â Ã¬Â â€¢Ã«Â³Â´ Ã¬Â¶â€Ã¬Â¶Å“"""
+    """Authorization 헤더에서 사용자 정보 추출"""
     if not auth_header or not supabase:
         return None
     
@@ -67,9 +69,10 @@ def health_check():
 # Authentication Routes
 # ========================================
 
+# toClaude: KOREAN_PROTECTED - No sed, use str_replace only
 @app.route('/auth/kakao/callback', methods=['POST'])
 def kakao_callback():
-    """Ã¬Â¹Â´Ã¬Â¹Â´Ã¬ËœÂ¤ Ã«Â¡Å“ÃªÂ·Â¸Ã¬ÂÂ¸ Ã¬Â½Å“Ã«Â°Â±"""
+    """카카오 로그인 콜백"""
     if not supabase:
         return jsonify({"error": "Supabase not configured"}), 500
     
@@ -80,7 +83,7 @@ def kakao_callback():
         if not access_token:
             return jsonify({"error": "Missing access_token"}), 400
         
-        # SupabaseÃ¬â€”ÂÃ¬â€žÅ“ Ã¬Â¹Â´Ã¬Â¹Â´Ã¬ËœÂ¤ Ã¬â€šÂ¬Ã¬Å¡Â©Ã¬Å¾Â Ã¬Â â€¢Ã«Â³Â´ ÃªÂ°â‚¬Ã¬Â Â¸Ã¬ËœÂ¤ÃªÂ¸Â°
+        # toClaude: KOREAN_PROTECTED - Supabase에서 카카오 사용자 정보 가져오기
         user = supabase.auth.get_user(access_token)
         
         return jsonify({
@@ -97,9 +100,10 @@ def kakao_callback():
         return jsonify({"error": str(e)}), 400
 
 
+# toClaude: KOREAN_PROTECTED - No sed, use str_replace only
 @app.route('/auth/me', methods=['GET'])
 def get_current_user():
-    """Ã­Ëœâ€žÃ¬Å¾Â¬ Ã¬â€šÂ¬Ã¬Å¡Â©Ã¬Å¾Â Ã¬Â â€¢Ã«Â³Â´"""
+    """현재 사용자 정보"""
     auth_header = request.headers.get('Authorization')
     user = get_user_from_token(auth_header)
     
@@ -113,7 +117,7 @@ def get_current_user():
 
 
 # ========================================
-# Room Routes (Ã«Â¡Å“ÃªÂ·Â¸Ã¬ÂÂ¸ Ã¬â€žÂ Ã­Æ’ÂÃ¬â€šÂ¬Ã­â€¢Â­)
+# Room Routes (로그인 선택사항)
 # ========================================
 
 @app.route('/rooms', methods=['OPTIONS'])
@@ -122,9 +126,10 @@ def rooms_options():
     return '', 200
 
 
+# toClaude: KOREAN_PROTECTED - No sed, use str_replace only
 @app.route('/rooms', methods=['POST'])
 def create_room():
-    """Ã«Â°Â© Ã¬Æ’ÂÃ¬â€žÂ± (Ã«Â¡Å“ÃªÂ·Â¸Ã¬ÂÂ¸ Ã­â€¢â€žÃ¬Ë†Ëœ Ã¬â€¢â€žÃ«â€¹Ëœ)"""
+    """방 생성 (로그인 필수 아님)"""
     if not supabase:
         return jsonify({"error": "Supabase not configured"}), 500
     
@@ -137,11 +142,11 @@ def create_room():
         if not title or not password:
             return jsonify({"error": "Missing title or password"}), 400
         
-        # Ã¬â€šÂ¬Ã¬Å¡Â©Ã¬Å¾Â ID (Ã«Â¡Å“ÃªÂ·Â¸Ã¬ÂÂ¸Ã­â€“Ë†Ã¬Å“Â¼Ã«Â©Â´ ÃªÂ°â‚¬Ã¬Â Â¸Ã¬ËœÂ¤ÃªÂ¸Â°, Ã¬â€¢â€žÃ«â€¹Ë†Ã«Â©Â´ anonymous)
+        # toClaude: KOREAN_PROTECTED - 사용자 ID (로그인했으면 가져오기, 아니면 anonymous)
         user = get_user_from_token(auth_header)
         owner_id = user.id if user else 'anonymous'
         
-        # SupabaseÃ¬â€”Â Ã«Â°Â© Ã¬Æ’ÂÃ¬â€žÂ±
+        # toClaude: KOREAN_PROTECTED - Supabase에 방 생성
         response = supabase.table('rooms').insert({
             'title': title,
             'password': password,
@@ -161,9 +166,10 @@ def create_room():
         return jsonify({"error": str(e)}), 400
 
 
+# toClaude: KOREAN_PROTECTED - No sed, use str_replace only
 @app.route('/rooms', methods=['GET'])
 def list_rooms():
-    """Ã«Â°Â© Ã«ÂªÂ©Ã«Â¡Â Ã¬Â¡Â°Ã­Å¡Å’ (Ã«Â¡Å“ÃªÂ·Â¸Ã¬ÂÂ¸ Ã­â€¢â€žÃ¬Ë†Ëœ Ã¬â€¢â€žÃ«â€¹Ëœ)"""
+    """방 목록 조회 (로그인 필수 아님)"""
     if not supabase:
         return jsonify({"error": "Supabase not configured"}), 500
     
@@ -171,7 +177,7 @@ def list_rooms():
         auth_header = request.headers.get('Authorization')
         user = get_user_from_token(auth_header)
         
-        # Ã«ÂªÂ¨Ã«â€œÂ  Ã«Â°Â© Ã¬Â¡Â°Ã­Å¡Å’ (Ã«Â¡Å“ÃªÂ·Â¸Ã¬ÂÂ¸ Ã¬â€”Â¬Ã«Â¶â‚¬ Ã«Â¬Â´ÃªÂ´â‚¬)
+        # toClaude: KOREAN_PROTECTED - 모든 방 조회 (로그인 여부 무관)
         response = supabase.table('rooms').select('*').execute()
         
         return jsonify({
@@ -184,9 +190,10 @@ def list_rooms():
         return jsonify({"error": str(e)}), 400
 
 
+# toClaude: KOREAN_PROTECTED - No sed, use str_replace only
 @app.route('/rooms/<room_id>', methods=['GET'])
 def get_room(room_id):
-    """Ã­Å Â¹Ã¬Â â€¢ Ã«Â°Â© Ã¬Â¡Â°Ã­Å¡Å’"""
+    """특정 방 조회"""
     if not supabase:
         return jsonify({"error": "Supabase not configured"}), 500
     
@@ -206,12 +213,13 @@ def get_room(room_id):
 
 
 # ========================================
-# Ã¢Å“â€¦ Room Update Route (NEW!)
+# ✅ Room Update Route (NEW!)
 # ========================================
 
+# toClaude: KOREAN_PROTECTED - No sed, use str_replace only
 @app.route('/rooms/<room_id>', methods=['PUT'])
 def update_room(room_id):
-    """Ã«Â°Â© Ã«ÂÂ°Ã¬ÂÂ´Ã­â€žÂ° Ã¬â€”â€¦Ã«ÂÂ°Ã¬ÂÂ´Ã­Å Â¸ (ÃªÂ·Â¼Ã«Â¬Â´Ã­â€˜Å“ Ã¬Å¾â€¦Ã«Â Â¥ Ã«ÂÂ°Ã¬ÂÂ´Ã­â€žÂ° Ã¬Â â‚¬Ã¬Å¾Â¥)"""
+    """방 데이터 업데이트 (근무표 일력 데이터 저장)"""
     if not supabase:
         return jsonify({"error": "Supabase not configured"}), 500
     
@@ -223,13 +231,13 @@ def update_room(room_id):
         if not schedule_data:
             return jsonify({"error": "Missing schedule_data"}), 400
         
-        # Ã«Â°Â© Ã¬Â¡Â´Ã¬Å¾Â¬ Ã­â„¢â€¢Ã¬ÂÂ¸
+        # toClaude: KOREAN_PROTECTED - 방 존재 확인
         room_response = supabase.table('rooms').select('*').eq('id', room_id).execute()
         
         if not room_response.data:
             return jsonify({"error": "Room not found"}), 404
         
-        # Ã«Â°Â© Ã«ÂÂ°Ã¬ÂÂ´Ã­â€žÂ° Ã¬â€”â€¦Ã«ÂÂ°Ã¬ÂÂ´Ã­Å Â¸ (schedule_data Ã¬Â â‚¬Ã¬Å¾Â¥)
+        # toClaude: KOREAN_PROTECTED - 방 데이터 업데이트 (schedule_data 저장)
         update_response = supabase.table('rooms').update({
             'schedule_data': schedule_data
         }).eq('id', room_id).execute()
@@ -252,9 +260,10 @@ def update_room(room_id):
 # Join Room Routes
 # ========================================
 
+# toClaude: KOREAN_PROTECTED - No sed, use str_replace only
 @app.route('/rooms/<room_id>/join', methods=['POST'])
 def join_room(room_id):
-    """Ã«Â°Â© Ã¬Å¾â€¦Ã¬Å¾Â¥"""
+    """방 입장"""
     if not supabase:
         return jsonify({"error": "Supabase not configured"}), 500
     
@@ -267,7 +276,7 @@ def join_room(room_id):
         if not password or not nurse_name:
             return jsonify({"error": "Missing password or nurse_name"}), 400
         
-        # Ã«Â°Â© Ã­â„¢â€¢Ã¬ÂÂ¸ Ã«Â°Â Ã«Â¹â€žÃ«Â°â‚¬Ã«Â²Ë†Ã­ËœÂ¸ ÃªÂ²â‚¬Ã¬Â¦Â
+        # toClaude: KOREAN_PROTECTED - 방 확인 및 비밀번호 검증
         room_response = supabase.table('rooms').select('*').eq('id', room_id).execute()
         
         if not room_response.data:
@@ -277,7 +286,7 @@ def join_room(room_id):
         if room['password'] != password:
             return jsonify({"error": "Incorrect password"}), 401
         
-        # Ã¬â€šÂ¬Ã¬Å¡Â©Ã¬Å¾Â ID
+        # toClaude: KOREAN_PROTECTED - 사용자 ID
         user = get_user_from_token(auth_header)
         user_id = user.id if user else 'anonymous'
         
@@ -297,9 +306,10 @@ def join_room(room_id):
 # Preferences Routes
 # ========================================
 
+# toClaude: KOREAN_PROTECTED - No sed, use str_replace only
 @app.route('/rooms/<room_id>/preferences', methods=['POST'])
 def submit_preferences(room_id):
-    """Ã­ÂÂ¬Ã«Â§Â ÃªÂ·Â¼Ã«Â¬Â´ Ã¬Â Å“Ã¬Â¶Å“"""
+    """희망 근무 제출"""
     if not supabase:
         return jsonify({"error": "Supabase not configured"}), 500
     
@@ -313,17 +323,17 @@ def submit_preferences(room_id):
         if not nurse_name:
             return jsonify({"error": "Missing nurse_name"}), 400
         
-        # Ã«Â°Â© Ã­â„¢â€¢Ã¬ÂÂ¸
+        # toClaude: KOREAN_PROTECTED - 방 확인
         room_response = supabase.table('rooms').select('*').eq('id', room_id).execute()
         
         if not room_response.data:
             return jsonify({"error": "Room not found"}), 404
         
-        # Ã¬â€šÂ¬Ã¬Å¡Â©Ã¬Å¾Â ID
+        # toClaude: KOREAN_PROTECTED - 사용자 ID
         user = get_user_from_token(auth_header)
         user_id = user.id if user else 'anonymous'
         
-        # Preferences Ã¬Â â‚¬Ã¬Å¾Â¥
+        # toClaude: KOREAN_PROTECTED - Preferences 저장
         pref_response = supabase.table('preferences').insert({
             'room_id': room_id,
             'user_id': user_id,
@@ -345,9 +355,10 @@ def submit_preferences(room_id):
         return jsonify({"error": str(e)}), 400
 
 
+# toClaude: KOREAN_PROTECTED - No sed, use str_replace only
 @app.route('/rooms/<room_id>/preferences', methods=['GET'])
 def get_preferences(room_id):
-    """Ã­ÂÂ¬Ã«Â§Â ÃªÂ·Â¼Ã«Â¬Â´ Ã¬Â¡Â°Ã­Å¡Å’"""
+    """희망 근무 조회"""
     if not supabase:
         return jsonify({"error": "Supabase not configured"}), 500
     
@@ -364,28 +375,29 @@ def get_preferences(room_id):
 
 
 # ========================================
-# Schedule Generation (Render Ã­â€ ÂµÃ­â€¢Â©)
+# Schedule Generation (Render 통합)
 # ========================================
 
+# toClaude: KOREAN_PROTECTED - No sed, use str_replace only
 @app.route('/solve', methods=['POST'])
 def solve_schedule():
-    """ÃªÂ·Â¼Ã«Â¬Â´Ã­â€˜Å“ Ã¬Æ’ÂÃ¬â€žÂ± (fouroff_ver_8.py Ã­ËœÂ¸Ã¬Â¶Å“)"""
+    """근무표 생성 (fouroff_ver_8.py 호출)"""
     try:
         input_json = request.get_json()
         
-        # Ã¢Å“â€¦ Ã¬Å¾â€¦Ã«Â Â¥ JSON Ã«Â¡Å“ÃªÂ¹â€¦
+        # toClaude: KOREAN_PROTECTED - ✅ 입력 JSON 로깅
         print(f"[DEBUG] /solve called with {len(json.dumps(input_json))} bytes")
         print(f"[DEBUG] Input preview: {json.dumps(input_json, ensure_ascii=False)[:200]}...")
         
-        # fouroff_ver_8.py í˜¸ì¶œ
+        # toClaude: KOREAN_PROTECTED - fouroff_ver_8.py 호출
         result = subprocess.run(
             ['python3', 'fouroff_ver_8.py', json.dumps(input_json, ensure_ascii=False)],
             capture_output=True,
             text=True,
-            timeout=35  # Gunicorn 30ì´ˆ timeout ëŒ€ì‘
+            timeout=25  # Gunicorn 30초 timeout 대응
         )
         
-        # Ã¢Å“â€¦ Ã¬Æ’ÂÃ¬â€žÂ¸ Ã¬ËœÂ¤Ã«Â¥Ëœ Ã«Â¡Å“ÃªÂ¹â€¦
+        # toClaude: KOREAN_PROTECTED - ✅ 상세 오류 로깅
         if result.returncode != 0:
             print(f"[ERROR] fouroff_ver_8.py exited with code {result.returncode}")
             print(f"[ERROR] stdout: {result.stdout[:500]}")
@@ -403,10 +415,10 @@ def solve_schedule():
         return jsonify(output), 200
     
     except subprocess.TimeoutExpired:
-        print("[ERROR] fouroff_ver_8.py timeout after 35s")
+        print("[ERROR] fouroff_ver_8.py timeout after 25s")
         return jsonify({
             "status": "error",
-            "message": "Timeout: ÃªÂ·Â¼Ã«Â¬Â´Ã­â€˜Å“ Ã¬Æ’ÂÃ¬â€žÂ±Ã¬ÂÂ´ Ã«â€žË†Ã«Â¬Â´ Ã¬ËœÂ¤Ã«Å¾Ëœ ÃªÂ±Â¸Ã«Â Â¸Ã¬Å ÂµÃ«â€¹Ë†Ã«â€¹Â¤"
+            "message": "Timeout: 근무표 생성이 너무 오래 걸립니다"
         }), 408
     except json.JSONDecodeError as e:
         print(f"[ERROR] JSON decode failed: {str(e)}")
