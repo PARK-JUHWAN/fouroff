@@ -294,8 +294,8 @@ def parse_input(input_json):
     num_night_keep = len(night_keep_nurses)
     num_all = len(all_nurses)
     
-    # Debug: Keep type classification
-    print(f"[DEBUG] Keep type classification: All={num_all}, DayFixed={num_day_keep}, NightFixed={num_night_keep}", file=sys.stderr)
+    # Debug disabled to see actual errors
+    # print(f"[DEBUG] Keep type classification: All={num_all}, DayFixed={num_day_keep}, NightFixed={num_night_keep}", file=sys.stderr)
     
     # Calculate monthly D, E, N, X totals
     total_D = sum(daily_wallet[day]['D'] for day in range(1, num_days + 1))
@@ -303,8 +303,8 @@ def parse_input(input_json):
     total_N = sum(daily_wallet[day]['N'] for day in range(1, num_days + 1))
     total_X = sum(daily_wallet[day]['X'] for day in range(1, num_days + 1))
     
-    # Debug: Monthly totals required
-    print(f"[DEBUG] Monthly totals required: D={total_D}, E={total_E}, N={total_N}, X={total_X}", file=sys.stderr)
+    # Debug disabled
+    # print(f"[DEBUG] Monthly totals required: D={total_D}, E={total_E}, N={total_N}, X={total_X}", file=sys.stderr)
     
     # Initialize nurse_wallets
     nurse_wallets = {}
@@ -341,8 +341,8 @@ def parse_input(input_json):
         all_total_N = total_N - night_keep_total_N
         all_total_X = total_X
         
-        # Debug: All type allocation totals
-        print(f"[DEBUG] All type allocation totals: D={all_total_D}, E={all_total_E}, N={all_total_N}, X={all_total_X}", file=sys.stderr)
+        # Debug disabled
+        # print(f"[DEBUG] All type allocation totals: D={all_total_D}, E={all_total_E}, N={all_total_N}, X={all_total_X}", file=sys.stderr)
         
         # Get min_N from nurse_wallet_min
         nurse_wallet_min = data.get('nurse_wallet_min', {})
@@ -358,8 +358,8 @@ def parse_input(input_json):
         remainder_D = all_total_D % num_all
         remainder_E = all_total_E % num_all
         
-        # Debug: Base allocation
-        print(f"[DEBUG] Base allocation: D={per_nurse_D}, E={per_nurse_E}, N={per_nurse_N}(min+1), X={per_nurse_X}(+1)", file=sys.stderr)
+        # Debug disabled
+        # print(f"[DEBUG] Base allocation: D={per_nurse_D}, E={per_nurse_E}, N={per_nurse_N}(min+1), X={per_nurse_X}(+1)", file=sys.stderr)
         
         for i, name in enumerate(all_nurses):
             d_count = per_nurse_D + (1 if i < remainder_D else 0)
@@ -375,10 +375,10 @@ def parse_input(input_json):
             }
 
     
-    # Debug: nurse_wallets calculation complete
-    print("[DEBUG] nurse_wallets calculation complete:", file=sys.stderr)
-    for name, wallet in nurse_wallets.items():
-        print(f"  {name}: {wallet}", file=sys.stderr)
+    # Debug disabled
+    # print("[DEBUG] nurse_wallets calculation complete:", file=sys.stderr)
+    # for name, wallet in nurse_wallets.items():
+    #     print(f"  {name}: {wallet}", file=sys.stderr)
     
     # Adjust wallets for new/quit nurses
     new_nurses_list = data.get('new', [])
@@ -443,10 +443,10 @@ def parse_input(input_json):
                 if duty in nurse_wallets[name]:
                     nurse_wallets[name][duty] -= 1
     
-    # Debug: nurse_wallets after new/quit/preference adjustments
-    print("[DEBUG] nurse_wallets after new/quit/preference adjustments:", file=sys.stderr)
-    for name, wallet in nurse_wallets.items():
-        print(f"  {name}: {wallet}", file=sys.stderr)
+    # Debug disabled
+    # print("[DEBUG] nurse_wallets after new/quit/preference adjustments:", file=sys.stderr)
+    # for name, wallet in nurse_wallets.items():
+    #     print(f"  {name}: {wallet}", file=sys.stderr)
     
     # Execute validation
     parsed_data = {
@@ -484,8 +484,8 @@ def solve_cpsat(parsed_data):
     preferences = parsed_data['preferences']
     nurses_data = parsed_data['nurses_data']
     
-    # Debug: CP-SAT start
-    print(f"[DEBUG] CP-SAT start: {year}/{month} ({num_days} days)", file=sys.stderr)
+    # Debug disabled
+    # print(f"[DEBUG] CP-SAT start: {year}/{month} ({num_days} days)", file=sys.stderr)
     
     nurses = list(nurse_wallets.keys())
     days = list(range(1, num_days + 1))
@@ -677,13 +677,13 @@ def solve_cpsat(parsed_data):
     solver.parameters.cp_model_presolve = True
     solver.parameters.cp_model_probing_level = 2
     
-    # Debug: Running solver
-    print("[DEBUG] CP-SAT solver running...", file=sys.stderr)
+    # Debug disabled
+    # print("[DEBUG] CP-SAT solver running...", file=sys.stderr)
     status = solver.Solve(model)
     
     if status in [cp_model.OPTIMAL, cp_model.FEASIBLE]:
         # Solution found
-        print(f"[DEBUG] Solution found! (status={status})", file=sys.stderr)
+        # print(f"[DEBUG] Solution found! (status={status})", file=sys.stderr)
         
         # Extract result
         result = {}
@@ -781,14 +781,14 @@ def main():
         print(json.dumps({
             'status': 'validation_error',
             'message': str(e)
-        }, ensure_ascii=False, indent=2), file=sys.stderr)
+        }, ensure_ascii=False, indent=2))  # stdout으로 출력
         sys.exit(1)
     
     except RuntimeError as e:
         print(json.dumps({
             'status': 'solver_error',
             'message': str(e)
-        }, ensure_ascii=False, indent=2), file=sys.stderr)
+        }, ensure_ascii=False, indent=2))  # stdout으로 출력
         sys.exit(1)
     
     except Exception as e:
@@ -797,7 +797,7 @@ def main():
             'status': 'error',
             'message': str(e),
             'traceback': traceback.format_exc()
-        }, ensure_ascii=False, indent=2), file=sys.stderr)
+        }, ensure_ascii=False, indent=2))  # stdout으로 출력
         sys.exit(1)
 
 
