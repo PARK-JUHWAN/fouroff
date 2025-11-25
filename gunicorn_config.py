@@ -12,8 +12,8 @@ worker_class = "sync"
 worker_connections = 1000
 
 # Timeout 설정 (가장 중요!)
-timeout = 45  # 45초 (기본 30초보다 길게 설정)
-graceful_timeout = 30
+timeout = 150  # 2.5분 - CP-SAT가 충분히 돌 수 있도록
+graceful_timeout = 60
 keepalive = 5
 
 # 로깅
