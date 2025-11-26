@@ -374,7 +374,7 @@ def parse_input(input_json):
         per_nurse_D = all_total_D // num_all
         per_nurse_E = all_total_E // num_all
         per_nurse_N = min_N + 1  # N+1 buffer
-        per_nurse_X = (all_total_X // num_all) + 1  # X+1 buffer
+        per_nurse_X = (all_total_X // num_all) + 2  # X+2 buffer (increased for preference+zRule combination)
         
         # Remainder distribution
         remainder_D = all_total_D % num_all
@@ -611,7 +611,14 @@ def solve_cpsat(parsed_data):
         # Apply zRule to each 3-day window
         for d1, d2, d3 in all_windows:
             # Calculate next work day
-            next_day = d3 + 1
+            # Special case: past_3days windows (-3,-2,-1), (-2,-1,1), (-1,1,2)
+            if d3 == -1:
+                next_day = 1  # past_3days window: next day is day 1
+            elif d3 < 1:
+                continue  # Skip incomplete past windows
+            else:
+                next_day = d3 + 1
+            
             if next_day < 1 or next_day > num_days:
                 continue
             
@@ -820,14 +827,14 @@ def main():
         print(json.dumps({
             'status': 'validation_error',
             'message': str(e)
-        }, ensure_ascii=False, indent=2))  # stdoutìœ¼ë¡œ ì¶œë ¥
+        }, ensure_ascii=False, indent=2))  # stdoutÃ¬Å“Â¼Ã«Â¡Å“ Ã¬Â¶Å“Ã«Â Â¥
         sys.exit(1)
     
     except RuntimeError as e:
         print(json.dumps({
             'status': 'solver_error',
             'message': str(e)
-        }, ensure_ascii=False, indent=2))  # stdoutìœ¼ë¡œ ì¶œë ¥
+        }, ensure_ascii=False, indent=2))  # stdoutÃ¬Å“Â¼Ã«Â¡Å“ Ã¬Â¶Å“Ã«Â Â¥
         sys.exit(1)
     
     except Exception as e:
@@ -836,7 +843,7 @@ def main():
             'status': 'error',
             'message': str(e),
             'traceback': traceback.format_exc()
-        }, ensure_ascii=False, indent=2))  # stdoutìœ¼ë¡œ ì¶œë ¥
+        }, ensure_ascii=False, indent=2))  # stdoutÃ¬Å“Â¼Ã«Â¡Å“ Ã¬Â¶Å“Ã«Â Â¥
         sys.exit(1)
 
 
