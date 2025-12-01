@@ -512,7 +512,7 @@ def parse_input(input_json):
             f"  Reduce Low Grade count or increase D/E/N staff per day"
         )
     
-    # Extract max_consecutive_work (기본값 6)
+    # Extract max_consecutive_work (ê¸°ë³¸ê°’ 6)
     max_consecutive_work = data.get('max_consecutive_work', 6)
     
     # Validate range (1~10)
@@ -586,12 +586,21 @@ def solve_cpsat(parsed_data):
         for duty in duties:
             model.Add(sum(x[nurse][day][duty] for nurse in nurses) == daily_wallet[day][duty])
     
-    # Constraint 3: Satisfy nurse_wallet (allow +/-1)
+    # Constraint 3: Satisfy nurse_wallet
+    # N: target 이상 (min_N 보장을 위해 -1 불허)
+    # D, E, X: +/-1 허용
     for nurse in nurses:
         for duty in duties:
             target = nurse_wallets[nurse][duty]
             actual = sum(x[nurse][day][duty] for day in days)
-            model.Add(actual >= target - 1)
+            
+            if duty == 'N':
+                # N은 -1 불허 (min_N 보장)
+                model.Add(actual >= target)
+            else:
+                # D, E, X는 -1 허용
+                model.Add(actual >= target - 1)
+            
             model.Add(actual <= target + 1)
     
     # Constraint 4: Fix preference duties
@@ -756,33 +765,33 @@ def solve_cpsat(parsed_data):
                 model.Add(sum(x[nurse][day][duty] for nurse in low_grade_nurses) <= 1)
 
     # Constraint 10: Maximum Consecutive Work Days (Sliding Window)
-    # 사용자가 N일 입력 → (N+1)일 윈도우마다 X >= 1개
+    # ì‚¬ìš©ìžê°€ Nì¼ ìž…ë ¥ â†’ (N+1)ì¼ ìœˆë„ìš°ë§ˆë‹¤ X >= 1ê°œ
     max_consecutive_work = parsed_data.get('max_consecutive_work', 6)
-    window_size = max_consecutive_work + 1  # 예: 6 입력 → 7일 윈도우
+    window_size = max_consecutive_work + 1  # ì˜ˆ: 6 ìž…ë ¥ â†’ 7ì¼ ìœˆë„ìš°
     
     for nurse in nurses:
         nurse_data = next(n for n in nurses_data if n['name'] == nurse)
         past_3days = nurse_data['past_3days']
         
-        # 현재 월 내에서 슬라이딩 윈도우 체크 (1 ~ num_days)
+        # í˜„ìž¬ ì›” ë‚´ì—ì„œ ìŠ¬ë¼ì´ë”© ìœˆë„ìš° ì²´í¬ (1 ~ num_days)
         for start_day in range(1, num_days - window_size + 2):
             end_day = start_day + window_size - 1
             
             if end_day > num_days:
                 break
             
-            # start_day ~ end_day 범위에서 X >= 1
+            # start_day ~ end_day ë²”ìœ„ì—ì„œ X >= 1
             model.Add(
                 sum(x[nurse][day]['X'] for day in range(start_day, end_day + 1)) >= 1
             )
         
-        # 월초: past_3days와 연결되는 윈도우 체크
-        # past_3days에서 X 개수 확인
+        # ì›”ì´ˆ: past_3daysì™€ ì—°ê²°ë˜ëŠ” ìœˆë„ìš° ì²´í¬
+        # past_3daysì—ì„œ X ê°œìˆ˜ í™•ì¸
         past_x_count = sum(1 for d in past_3days if d == 'X')
         
         if past_x_count == 0:
-            # past_3days에 X 없음 → 1일부터 (window_size - 3)일 내에 X 필요
-            # 예: window_size=7, past_3days에 X 없음 → 1~4일 내에 X >= 1
+            # past_3daysì— X ì—†ìŒ â†’ 1ì¼ë¶€í„° (window_size - 3)ì¼ ë‚´ì— X í•„ìš”
+            # ì˜ˆ: window_size=7, past_3daysì— X ì—†ìŒ â†’ 1~4ì¼ ë‚´ì— X >= 1
             remaining_window = window_size - 3
             if remaining_window > 0 and remaining_window <= num_days:
                 model.Add(
@@ -926,14 +935,14 @@ def main():
         print(json.dumps({
             'status': 'validation_error',
             'message': str(e)
-        }, ensure_ascii=False, indent=2))  # stdout으로 출력
+        }, ensure_ascii=False, indent=2))  # stdoutìœ¼ë¡œ ì¶œë ¥
         sys.exit(1)
     
     except RuntimeError as e:
         print(json.dumps({
             'status': 'solver_error',
             'message': str(e)
-        }, ensure_ascii=False, indent=2))  # stdout으로 출력
+        }, ensure_ascii=False, indent=2))  # stdoutìœ¼ë¡œ ì¶œë ¥
         sys.exit(1)
     
     except Exception as e:
@@ -942,7 +951,7 @@ def main():
             'status': 'error',
             'message': str(e),
             'traceback': traceback.format_exc()
-        }, ensure_ascii=False, indent=2))  # stdout으로 출력
+        }, ensure_ascii=False, indent=2))  # stdoutìœ¼ë¡œ ì¶œë ¥
         sys.exit(1)
 
 
