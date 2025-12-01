@@ -174,12 +174,15 @@ def validate_result(result, parsed_data):
     num_days = parsed_data['num_days']
     nurse_wallets = parsed_data['nurse_wallets']
     daily_wallet = parsed_data['daily_wallet']
+    low_grade_nurses = parsed_data.get('low_grade_nurses', [])
     
     validation = {
         'daily_wallet_satisfied': True,
         'nurse_wallet_satisfied': True,
+        'low_grade_satisfied': True,
         'daily_violations': [],
         'nurse_violations': [],
+        'low_grade_violations': [],
         'nurse_duty_counts': {}
     }
     
@@ -235,6 +238,18 @@ def validate_result(result, parsed_data):
                     validation['nurse_wallet_satisfied'] = False
                     validation['nurse_violations'].append(
                         f"{nurse}: N shortage (remaining N: {remaining_N}, target: <=1)"
+                    )
+    
+    # Check Low Grade Rule
+    if len(low_grade_nurses) >= 2:
+        for day in range(1, num_days + 1):
+            for duty in ['D', 'E', 'N']:
+                count = sum(1 for nurse in low_grade_nurses 
+                           if result.get(nurse, {}).get(str(day)) == duty)
+                if count > 1:
+                    validation['low_grade_satisfied'] = False
+                    validation['low_grade_violations'].append(
+                        f"Day {day} {duty}: Low Grade {count} assigned (max 1)"
                     )
     
     return validation
@@ -470,6 +485,32 @@ def parse_input(input_json):
     # for name, wallet in nurse_wallets.items():
     #     print(f"  {name}: {wallet}", file=sys.stderr)
     
+    # Extract Low Grade nurses
+    low_grade_nurses = []
+    for nurse_data in nurses_data:
+        name = nurse_data['name']
+        is_low_grade = nurse_data.get('is_low_grade', False)
+        if is_low_grade:
+            low_grade_nurses.append(name)
+    
+    # Calculate max_low_grade
+    max_low_grade = min(
+        weekday_wallet['D'],
+        weekday_wallet['E'],
+        weekday_wallet['N'],
+        weekend_wallet['D'],
+        weekend_wallet['E'],
+        weekend_wallet['N'],
+    )
+    
+    # Validate Low Grade count
+    if len(low_grade_nurses) > max_low_grade:
+        raise ValueError(
+            f"Low Grade exceeds limit: {len(low_grade_nurses)} > max {max_low_grade}\n"
+            f"  Low Grade nurses: {low_grade_nurses}\n"
+            f"  Reduce Low Grade count or increase D/E/N staff per day"
+        )
+    
     # Execute validation
     parsed_data = {
         'year': year,
@@ -480,7 +521,9 @@ def parse_input(input_json):
         'new_nurses': new_nurses,
         'quit_nurses': quit_nurses,
         'preferences': preferences,
-        'nurses_data': nurses_data
+        'nurses_data': nurses_data,
+        'low_grade_nurses': low_grade_nurses,
+        'max_low_grade': max_low_grade
     }
     
     errors = validate_input(data, parsed_data)
@@ -694,6 +737,15 @@ def solve_cpsat(parsed_data):
 
 
 
+    # Constraint 9: Low Grade Rule
+    # Low Grade nurses cannot be on the same duty (D/E/N) on the same day
+    low_grade_nurses = parsed_data.get('low_grade_nurses', [])
+    
+    if len(low_grade_nurses) >= 2:
+        for day in days:
+            for duty in ['D', 'E', 'N']:  # X is excluded
+                model.Add(sum(x[nurse][day][duty] for nurse in low_grade_nurses) <= 1)
+
     model.Minimize(0)
     
     # Run solver
@@ -827,14 +879,14 @@ def main():
         print(json.dumps({
             'status': 'validation_error',
             'message': str(e)
-        }, ensure_ascii=False, indent=2))  # stdoutÃ¬Å“Â¼Ã«Â¡Å“ Ã¬Â¶Å“Ã«Â Â¥
+        }, ensure_ascii=False, indent=2))  # stdoutÃƒÂ¬Ã…â€œÃ‚Â¼ÃƒÂ«Ã‚Â¡Ã…â€œ ÃƒÂ¬Ã‚Â¶Ã…â€œÃƒÂ«Ã‚Â Ã‚Â¥
         sys.exit(1)
     
     except RuntimeError as e:
         print(json.dumps({
             'status': 'solver_error',
             'message': str(e)
-        }, ensure_ascii=False, indent=2))  # stdoutÃ¬Å“Â¼Ã«Â¡Å“ Ã¬Â¶Å“Ã«Â Â¥
+        }, ensure_ascii=False, indent=2))  # stdoutÃƒÂ¬Ã…â€œÃ‚Â¼ÃƒÂ«Ã‚Â¡Ã…â€œ ÃƒÂ¬Ã‚Â¶Ã…â€œÃƒÂ«Ã‚Â Ã‚Â¥
         sys.exit(1)
     
     except Exception as e:
@@ -843,7 +895,7 @@ def main():
             'status': 'error',
             'message': str(e),
             'traceback': traceback.format_exc()
-        }, ensure_ascii=False, indent=2))  # stdoutÃ¬Å“Â¼Ã«Â¡Å“ Ã¬Â¶Å“Ã«Â Â¥
+        }, ensure_ascii=False, indent=2))  # stdoutÃƒÂ¬Ã…â€œÃ‚Â¼ÃƒÂ«Ã‚Â¡Ã…â€œ ÃƒÂ¬Ã‚Â¶Ã…â€œÃƒÂ«Ã‚Â Ã‚Â¥
         sys.exit(1)
 
 
