@@ -519,6 +519,10 @@ def parse_input(input_json):
     if not (1 <= max_consecutive_work <= 10):
         raise ValueError(f"max_consecutive_work must be 1~10, got {max_consecutive_work}")
     
+    # Extract min_N for Constraint 3 (min_N 보장용)
+    nurse_wallet_min_global = data.get('nurse_wallet_min', {})
+    min_N_value = nurse_wallet_min_global.get('N', 6)
+    
     # Execute validation
     parsed_data = {
         'year': year,
@@ -532,7 +536,8 @@ def parse_input(input_json):
         'nurses_data': nurses_data,
         'low_grade_nurses': low_grade_nurses,
         'max_low_grade': max_low_grade,
-        'max_consecutive_work': max_consecutive_work
+        'max_consecutive_work': max_consecutive_work,
+        'min_N': min_N_value
     }
     
     errors = validate_input(data, parsed_data)
@@ -587,16 +592,18 @@ def solve_cpsat(parsed_data):
             model.Add(sum(x[nurse][day][duty] for nurse in nurses) == daily_wallet[day][duty])
     
     # Constraint 3: Satisfy nurse_wallet
-    # N: target 이상 (min_N 보장을 위해 -1 불허)
+    # N: >= min_N (wallet이 아닌 min_N 기준으로 보장)
     # D, E, X: +/-1 허용
+    min_N = parsed_data.get('min_N', 6)  # min_N 가져오기
+    
     for nurse in nurses:
         for duty in duties:
             target = nurse_wallets[nurse][duty]
             actual = sum(x[nurse][day][duty] for day in days)
             
             if duty == 'N':
-                # N은 -1 불허 (min_N 보장)
-                model.Add(actual >= target)
+                # N: min_N 이상 보장 (wallet이 아닌 입력된 min_N 기준)
+                model.Add(actual >= min_N)
             else:
                 # D, E, X는 -1 허용
                 model.Add(actual >= target - 1)
