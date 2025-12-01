@@ -512,6 +512,13 @@ def parse_input(input_json):
             f"  Reduce Low Grade count or increase D/E/N staff per day"
         )
     
+    # Extract max_consecutive_work (기본값 6)
+    max_consecutive_work = data.get('max_consecutive_work', 6)
+    
+    # Validate range (1~10)
+    if not (1 <= max_consecutive_work <= 10):
+        raise ValueError(f"max_consecutive_work must be 1~10, got {max_consecutive_work}")
+    
     # Execute validation
     parsed_data = {
         'year': year,
@@ -524,7 +531,8 @@ def parse_input(input_json):
         'preferences': preferences,
         'nurses_data': nurses_data,
         'low_grade_nurses': low_grade_nurses,
-        'max_low_grade': max_low_grade
+        'max_low_grade': max_low_grade,
+        'max_consecutive_work': max_consecutive_work
     }
     
     errors = validate_input(data, parsed_data)
@@ -747,6 +755,40 @@ def solve_cpsat(parsed_data):
             for duty in ['D', 'E', 'N']:  # X is excluded
                 model.Add(sum(x[nurse][day][duty] for nurse in low_grade_nurses) <= 1)
 
+    # Constraint 10: Maximum Consecutive Work Days (Sliding Window)
+    # 사용자가 N일 입력 → (N+1)일 윈도우마다 X >= 1개
+    max_consecutive_work = parsed_data.get('max_consecutive_work', 6)
+    window_size = max_consecutive_work + 1  # 예: 6 입력 → 7일 윈도우
+    
+    for nurse in nurses:
+        nurse_data = next(n for n in nurses_data if n['name'] == nurse)
+        past_3days = nurse_data['past_3days']
+        
+        # 현재 월 내에서 슬라이딩 윈도우 체크 (1 ~ num_days)
+        for start_day in range(1, num_days - window_size + 2):
+            end_day = start_day + window_size - 1
+            
+            if end_day > num_days:
+                break
+            
+            # start_day ~ end_day 범위에서 X >= 1
+            model.Add(
+                sum(x[nurse][day]['X'] for day in range(start_day, end_day + 1)) >= 1
+            )
+        
+        # 월초: past_3days와 연결되는 윈도우 체크
+        # past_3days에서 X 개수 확인
+        past_x_count = sum(1 for d in past_3days if d == 'X')
+        
+        if past_x_count == 0:
+            # past_3days에 X 없음 → 1일부터 (window_size - 3)일 내에 X 필요
+            # 예: window_size=7, past_3days에 X 없음 → 1~4일 내에 X >= 1
+            remaining_window = window_size - 3
+            if remaining_window > 0 and remaining_window <= num_days:
+                model.Add(
+                    sum(x[nurse][day]['X'] for day in range(1, remaining_window + 1)) >= 1
+                )
+
     model.Minimize(0)
     
     # Run solver
@@ -884,14 +926,14 @@ def main():
         print(json.dumps({
             'status': 'validation_error',
             'message': str(e)
-        }, ensure_ascii=False, indent=2))  # stdoutÃƒÆ’Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“Ãƒâ€šÃ‚Â¼ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â¡Ãƒâ€¦Ã¢â‚¬Å“ ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â¶Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â Ãƒâ€šÃ‚Â¥
+        }, ensure_ascii=False, indent=2))  # stdout으로 출력
         sys.exit(1)
     
     except RuntimeError as e:
         print(json.dumps({
             'status': 'solver_error',
             'message': str(e)
-        }, ensure_ascii=False, indent=2))  # stdoutÃƒÆ’Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“Ãƒâ€šÃ‚Â¼ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â¡Ãƒâ€¦Ã¢â‚¬Å“ ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â¶Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â Ãƒâ€šÃ‚Â¥
+        }, ensure_ascii=False, indent=2))  # stdout으로 출력
         sys.exit(1)
     
     except Exception as e:
@@ -900,7 +942,7 @@ def main():
             'status': 'error',
             'message': str(e),
             'traceback': traceback.format_exc()
-        }, ensure_ascii=False, indent=2))  # stdoutÃƒÆ’Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“Ãƒâ€šÃ‚Â¼ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â¡Ãƒâ€¦Ã¢â‚¬Å“ ÃƒÆ’Ã‚Â¬Ãƒâ€šÃ‚Â¶Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã‚Â«Ãƒâ€šÃ‚Â Ãƒâ€šÃ‚Â¥
+        }, ensure_ascii=False, indent=2))  # stdout으로 출력
         sys.exit(1)
 
 
