@@ -88,6 +88,9 @@ Z_RULES = {
 
 WEIGHT = {"D": 0, "E": 1, "N": 2, "X": 3}
 
+# Night샤 법적 기준 N 개수 (전국 공통)
+NIGHT_KEEP_N_COUNT = 15
+
 
 # ========================================
 # Validation Functions
@@ -312,7 +315,13 @@ def parse_input(input_json):
     nurses_data = data['nurses']
     nurse_count = len(nurses_data)
     
-    # Classify nurses by keep_type
+    # Get new/quit nurse lists
+    new_nurses_list = data.get('new', [])
+    quit_nurses_list = data.get('quit', [])
+    new_nurse_names = set(n['name'] for n in new_nurses_list)
+    quit_nurse_names = set(q['name'] for q in quit_nurses_list)
+    
+    # Classify nurses by keep_type (excluding new/quit for All count)
     all_nurses = []
     day_keep_nurses = []
     night_keep_nurses = []
@@ -320,6 +329,10 @@ def parse_input(input_json):
     for nurse_data in nurses_data:
         name = nurse_data['name']
         keep_type = nurse_data.get('keep_type', 'All')
+        
+        # Skip new/quit nurses from type classification (they're handled separately)
+        if name in new_nurse_names or name in quit_nurse_names:
+            continue
         
         if keep_type == 'DayFixed':
             day_keep_nurses.append(name)
@@ -331,9 +344,8 @@ def parse_input(input_json):
     num_day_keep = len(day_keep_nurses)
     num_night_keep = len(night_keep_nurses)
     num_all = len(all_nurses)
-    
-    # Debug disabled to see actual errors
-    # print(f"[DEBUG] Keep type classification: All={num_all}, DayFixed={num_day_keep}, NightFixed={num_night_keep}", file=sys.stderr)
+    num_new = len(new_nurse_names)
+    num_quit = len(quit_nurse_names)
     
     # Calculate monthly D, E, N, X totals
     total_D = sum(daily_wallet[day]['D'] for day in range(1, num_days + 1))
@@ -341,63 +353,108 @@ def parse_input(input_json):
     total_N = sum(daily_wallet[day]['N'] for day in range(1, num_days + 1))
     total_X = sum(daily_wallet[day]['X'] for day in range(1, num_days + 1))
     
-    # Debug disabled
-    # print(f"[DEBUG] Monthly totals required: D={total_D}, E={total_E}, N={total_N}, X={total_X}", file=sys.stderr)
-    
     # Initialize nurse_wallets
     nurse_wallets = {}
     
-    # DayFixed nurses: D only, E/N=0
+    # Calculate weekday/weekend counts for Day샤
+    kr_holidays = holidays.KR(years=year)
+    weekdays = 0
+    weekends = 0
+    
+    for day in range(1, num_days + 1):
+        date = f"{year}-{month:02d}-{day:02d}"
+        is_weekend = calendar.weekday(year, month, day) >= 5  # Saturday(5), Sunday(6)
+        is_holiday = date in kr_holidays
+        
+        if is_weekend or is_holiday:
+            weekends += 1
+        else:
+            weekdays += 1
+    
+    # DayFixed nurses: D=weekdays, E=0, N=0, X=weekends
     for name in day_keep_nurses:
         nurse_wallets[name] = {
-            'D': num_days,
+            'D': weekdays,
             'E': 0,
             'N': 0,
-            'X': 2  # Weekly allocation
+            'X': weekends
         }
     
-    # NightFixed nurses: N=15, D/E=0
+    # NightFixed nurses: D=0, E=0, N=15 (legal standard), X=remainder
     for name in night_keep_nurses:
         nurse_wallets[name] = {
             'D': 0,
             'E': 0,
-            'N': 15,
-            'X': num_days - 15 + 2  # Weekly allocation
+            'N': NIGHT_KEEP_N_COUNT,  # 15 (legal standard)
+            'X': num_days - NIGHT_KEEP_N_COUNT
         }
     
-    # All type nurses: Equal distribution + N+1, X+1 buffer
+    # Calculate N consumed by Night샤 and new/quit nurses
+    night_keep_total_N = num_night_keep * NIGHT_KEEP_N_COUNT
+    new_quit_total_N = sum(n['n_count'] for n in new_nurses_list) + sum(q['n_count'] for q in quit_nurses_list)
+    consumed_N = night_keep_total_N + new_quit_total_N
+    
+    # Calculate available N for All type nurses
+    all_available_N = total_N - consumed_N
+    
+    # All type nurses: Dynamic min_N calculation
     if num_all > 0:
         # Calculate D usage by DayFixed nurses
-        day_keep_total_D = num_day_keep * num_days
+        day_keep_total_D = num_day_keep * weekdays
         
-        # Calculate N usage by NightFixed nurses
-        night_keep_total_N = num_night_keep * 15
-        
-        # Calculate remaining D, E, N, X for All type nurses
+        # Calculate remaining D, E, X for All type nurses
         all_total_D = total_D - day_keep_total_D
-        all_total_E = total_E
-        all_total_N = total_N - night_keep_total_N
+        all_total_E = total_E  # All E goes to All type
         all_total_X = total_X
         
-        # Debug disabled
-        # print(f"[DEBUG] All type allocation totals: D={all_total_D}, E={all_total_E}, N={all_total_N}, X={all_total_X}", file=sys.stderr)
-        
-        # Get min_N from nurse_wallet_min
+        # Get user input min_N
         nurse_wallet_min = data.get('nurse_wallet_min', {})
-        min_N = nurse_wallet_min.get('N', 6)
+        user_min_N = nurse_wallet_min.get('N', 6)
         
-        # Equal distribution
+        # Calculate max_min_N (floor division)
+        max_min_N = all_available_N // num_all
+        
+        # Validate user_min_N
+        if user_min_N > max_min_N:
+            raise ValueError(
+                f"min_N={user_min_N}은(는) 불가능합니다.\n"
+                f"  이유: All 타입 간호사 {num_all}명이 사용할 수 있는 N은 총 {all_available_N}개입니다.\n"
+                f"  최대 min_N: {max_min_N} (= {all_available_N} // {num_all})\n"
+                f"  Night샤({num_night_keep}명)가 {night_keep_total_N}개, 신규/퇴사가 {new_quit_total_N}개를 이미 사용 중입니다.\n"
+                f"  해결방법:\n"
+                f"    1. min_N을 {max_min_N} 이하로 낮추기\n"
+                f"    2. 일별 N 인원 늘리기\n"
+                f"    3. Night샤 인원 줄이기"
+            )
+        
+        # Use dynamic min_N if keep types exist, else use user input
+        if num_night_keep > 0 or num_day_keep > 0 or num_new > 0 or num_quit > 0:
+            # Dynamic mode: use max_min_N
+            per_nurse_N = max_min_N + 1  # +1 buffer
+        else:
+            # Simple mode: use user input
+            per_nurse_N = user_min_N + 1  # +1 buffer
+        
+        # Equal distribution for D, E, X
         per_nurse_D = all_total_D // num_all
         per_nurse_E = all_total_E // num_all
-        per_nurse_N = min_N + 1  # N+1 buffer
-        per_nurse_X = (all_total_X // num_all) + 2  # X+2 buffer (increased for preference+zRule combination)
+        per_nurse_X = (all_total_X // num_all) + 2  # X+2 buffer
         
         # Remainder distribution
         remainder_D = all_total_D % num_all
         remainder_E = all_total_E % num_all
         
-        # Debug disabled
-        # print(f"[DEBUG] Base allocation: D={per_nurse_D}, E={per_nurse_E}, N={per_nurse_N}(min+1), X={per_nurse_X}(+1)", file=sys.stderr)
+        # Check buffer
+        total_allocated_N = num_all * per_nurse_N
+        buffer_N = total_allocated_N - all_available_N
+        
+        if buffer_N < 0:
+            raise ValueError(
+                f"N 버퍼 부족: {buffer_N}\n"
+                f"  All 타입 {num_all}명 × wallet N {per_nurse_N}개 = {total_allocated_N}개\n"
+                f"  사용 가능한 N: {all_available_N}개\n"
+                f"  부족: {-buffer_N}개"
+            )
         
         for i, name in enumerate(all_nurses):
             d_count = per_nurse_D + (1 if i < remainder_D else 0)
@@ -419,8 +476,7 @@ def parse_input(input_json):
     #     print(f"  {name}: {wallet}", file=sys.stderr)
     
     # Adjust wallets for new/quit nurses
-    new_nurses_list = data.get('new', [])
-    quit_nurses_list = data.get('quit', [])
+    # Note: new_nurses_list and quit_nurses_list already declared above
     
     new_nurses = {}
     for new_data in new_nurses_list:
@@ -435,16 +491,56 @@ def parse_input(input_json):
         
         work_days = num_days - start_day + 1
         
-        # New nurse: X before start, specified N count
-        nurse_wallets[name]['X'] = start_day - 1 + nurse_wallets[name]['X']
-        nurse_wallets[name]['N'] = n_count
+        # Get keep_type for new nurse
+        nurse_data = next((n for n in nurses_data if n['name'] == name), None)
+        keep_type = nurse_data.get('keep_type', 'All') if nurse_data else 'All'
         
-        # Recalculate D, E
-        remaining = work_days - n_count
-        nurse_wallets[name]['D'] = remaining // 2
-        nurse_wallets[name]['E'] = remaining - nurse_wallets[name]['D']
+        # Initialize wallet based on keep_type
+        if keep_type == 'DayFixed':
+            # Day샤: D=weekdays in work period, E=0, N=0, X=days before start + weekends in work period
+            # Calculate weekdays/weekends in work period
+            work_weekdays = 0
+            work_weekends = 0
+            for day in range(start_day, num_days + 1):
+                date = f"{year}-{month:02d}-{day:02d}"
+                is_weekend = calendar.weekday(year, month, day) >= 5
+                is_holiday = date in kr_holidays
+                if is_weekend or is_holiday:
+                    work_weekends += 1
+                else:
+                    work_weekdays += 1
+            
+            nurse_wallets[name] = {
+                'D': work_weekdays,
+                'E': 0,
+                'N': 0,
+                'X': (start_day - 1) + work_weekends
+            }
         
-        new_nurses[name] = {'start_day': start_day, 'n_count': n_count}
+        elif keep_type == 'NightFixed':
+            # Night샤 신규: 입력받은 n_count 사용 (15 아님!)
+            nurse_wallets[name] = {
+                'D': 0,
+                'E': 0,
+                'N': n_count,  # User input, NOT 15
+                'X': num_days - n_count
+            }
+        
+        else:
+            # All type: X before start, specified N count, D/E distributed
+            nurse_wallets[name] = {
+                'D': 0,
+                'E': 0,
+                'N': n_count,
+                'X': start_day - 1
+            }
+            
+            # Recalculate D, E
+            remaining = work_days - n_count
+            nurse_wallets[name]['D'] = remaining // 2
+            nurse_wallets[name]['E'] = remaining - nurse_wallets[name]['D']
+        
+        new_nurses[name] = {'start_day': start_day, 'n_count': n_count, 'keep_type': keep_type}
     
     quit_nurses = {}
     for quit_data in quit_nurses_list:
@@ -459,16 +555,55 @@ def parse_input(input_json):
         
         work_days = last_day
         
-        # Quit nurse: X after last day, specified N count
-        nurse_wallets[name]['X'] += (num_days - last_day)
-        nurse_wallets[name]['N'] = n_count
+        # Get keep_type for quit nurse
+        nurse_data = next((n for n in nurses_data if n['name'] == name), None)
+        keep_type = nurse_data.get('keep_type', 'All') if nurse_data else 'All'
         
-        # Recalculate D, E
-        remaining = work_days - n_count
-        nurse_wallets[name]['D'] = remaining // 2
-        nurse_wallets[name]['E'] = remaining - nurse_wallets[name]['D']
+        # Initialize wallet based on keep_type
+        if keep_type == 'DayFixed':
+            # Day샤: D=weekdays in work period, E=0, N=0, X=weekends in work period + days after last
+            work_weekdays = 0
+            work_weekends = 0
+            for day in range(1, last_day + 1):
+                date = f"{year}-{month:02d}-{day:02d}"
+                is_weekend = calendar.weekday(year, month, day) >= 5
+                is_holiday = date in kr_holidays
+                if is_weekend or is_holiday:
+                    work_weekends += 1
+                else:
+                    work_weekdays += 1
+            
+            nurse_wallets[name] = {
+                'D': work_weekdays,
+                'E': 0,
+                'N': 0,
+                'X': work_weekends + (num_days - last_day)
+            }
         
-        quit_nurses[name] = {'last_day': last_day, 'n_count': n_count}
+        elif keep_type == 'NightFixed':
+            # Night샤 퇴사: 입력받은 n_count 사용
+            nurse_wallets[name] = {
+                'D': 0,
+                'E': 0,
+                'N': n_count,
+                'X': num_days - n_count
+            }
+        
+        else:
+            # All type: X after last day, specified N count, D/E distributed
+            nurse_wallets[name] = {
+                'D': 0,
+                'E': 0,
+                'N': n_count,
+                'X': num_days - last_day
+            }
+            
+            # Recalculate D, E
+            remaining = work_days - n_count
+            nurse_wallets[name]['D'] = remaining // 2
+            nurse_wallets[name]['E'] = remaining - nurse_wallets[name]['D']
+        
+        quit_nurses[name] = {'last_day': last_day, 'n_count': n_count, 'keep_type': keep_type}
     
     # Deduct preferences from wallets
     preferences = data.get('preferences', [])
@@ -512,14 +647,14 @@ def parse_input(input_json):
             f"  Reduce Low Grade count or increase D/E/N staff per day"
         )
     
-    # Extract max_consecutive_work (ê¸°ë³¸ê°’ 6)
+    # Extract max_consecutive_work (ÃªÂ¸Â°Ã«Â³Â¸ÃªÂ°â€™ 6)
     max_consecutive_work = data.get('max_consecutive_work', 6)
     
     # Validate range (1~10)
     if not (1 <= max_consecutive_work <= 10):
         raise ValueError(f"max_consecutive_work must be 1~10, got {max_consecutive_work}")
     
-    # Extract min_N for Constraint 3 (min_N 보장용)
+    # Extract min_N for Constraint 3 (min_N ë³´ìž¥ìš©)
     nurse_wallet_min_global = data.get('nurse_wallet_min', {})
     min_N_value = nurse_wallet_min_global.get('N', 6)
     
@@ -591,24 +726,71 @@ def solve_cpsat(parsed_data):
         for duty in duties:
             model.Add(sum(x[nurse][day][duty] for nurse in nurses) == daily_wallet[day][duty])
     
-    # Constraint 3: Satisfy nurse_wallet
-    # N: >= min_N (wallet이 아닌 min_N 기준으로 보장)
-    # D, E, X: +/-1 허용
-    min_N = parsed_data.get('min_N', 6)  # min_N 가져오기
+    # Constraint 3: Satisfy nurse_wallet (Keep type별 정확한 제약)
+    min_N = parsed_data.get('min_N', 6)
+    new_nurses_dict = parsed_data['new_nurses']
+    quit_nurses_dict = parsed_data['quit_nurses']
     
     for nurse in nurses:
+        nurse_data = next(n for n in nurses_data if n['name'] == nurse)
+        keep_type = nurse_data.get('keep_type', 'All')
+        
+        is_new = nurse in new_nurses_dict
+        is_quit = nurse in quit_nurses_dict
+        
         for duty in duties:
             target = nurse_wallets[nurse][duty]
             actual = sum(x[nurse][day][duty] for day in days)
             
-            if duty == 'N':
-                # N: min_N 이상 보장 (wallet이 아닌 입력된 min_N 기준)
-                model.Add(actual >= min_N)
-            else:
-                # D, E, X는 -1 허용
-                model.Add(actual >= target - 1)
+            # 신규/퇴사 간호사: n_count 정확히 맞춤
+            if is_new or is_quit:
+                n_count_target = new_nurses_dict[nurse]['n_count'] if is_new else quit_nurses_dict[nurse]['n_count']
+                
+                if duty == 'N':
+                    # N은 입력받은 n_count 정확히
+                    model.Add(actual == n_count_target)
+                else:
+                    # D, E, X는 wallet ±1 허용
+                    model.Add(actual >= target - 1)
+                    model.Add(actual <= target + 1)
             
-            model.Add(actual <= target + 1)
+            # Night샤 (기존 근무자)
+            elif keep_type == 'NightFixed':
+                if duty == 'N':
+                    # N = 15 (법적 기준) 정확히
+                    model.Add(actual == NIGHT_KEEP_N_COUNT)
+                elif duty == 'D' or duty == 'E':
+                    # D, E는 0
+                    model.Add(actual == 0)
+                else:
+                    # X는 wallet ±1 허용
+                    model.Add(actual >= target - 1)
+                    model.Add(actual <= target + 1)
+            
+            # Day샤 (기존 근무자)
+            elif keep_type == 'DayFixed':
+                if duty == 'N':
+                    # N은 0
+                    model.Add(actual == 0)
+                elif duty == 'E':
+                    # E도 0
+                    model.Add(actual == 0)
+                else:
+                    # D, X는 wallet ±1 허용
+                    model.Add(actual >= target - 1)
+                    model.Add(actual <= target + 1)
+            
+            # All 타입 (기존 근무자)
+            else:
+                if duty == 'N':
+                    # N: min_N 이상 보장
+                    model.Add(actual >= min_N)
+                else:
+                    # D, E, X: -1 허용
+                    model.Add(actual >= target - 1)
+                
+                model.Add(actual <= target + 1)
+    
     
     # Constraint 4: Fix preference duties
     pref_dict = {}
@@ -772,33 +954,33 @@ def solve_cpsat(parsed_data):
                 model.Add(sum(x[nurse][day][duty] for nurse in low_grade_nurses) <= 1)
 
     # Constraint 10: Maximum Consecutive Work Days (Sliding Window)
-    # ì‚¬ìš©ìžê°€ Nì¼ ìž…ë ¥ â†’ (N+1)ì¼ ìœˆë„ìš°ë§ˆë‹¤ X >= 1ê°œ
+    # Ã¬â€šÂ¬Ã¬Å¡Â©Ã¬Å¾ÂÃªÂ°â‚¬ NÃ¬ÂÂ¼ Ã¬Å¾â€¦Ã«Â Â¥ Ã¢â€ â€™ (N+1)Ã¬ÂÂ¼ Ã¬Å“Ë†Ã«Ââ€žÃ¬Å¡Â°Ã«Â§Ë†Ã«â€¹Â¤ X >= 1ÃªÂ°Å“
     max_consecutive_work = parsed_data.get('max_consecutive_work', 6)
-    window_size = max_consecutive_work + 1  # ì˜ˆ: 6 ìž…ë ¥ â†’ 7ì¼ ìœˆë„ìš°
+    window_size = max_consecutive_work + 1  # Ã¬ËœË†: 6 Ã¬Å¾â€¦Ã«Â Â¥ Ã¢â€ â€™ 7Ã¬ÂÂ¼ Ã¬Å“Ë†Ã«Ââ€žÃ¬Å¡Â°
     
     for nurse in nurses:
         nurse_data = next(n for n in nurses_data if n['name'] == nurse)
         past_3days = nurse_data['past_3days']
         
-        # í˜„ìž¬ ì›” ë‚´ì—ì„œ ìŠ¬ë¼ì´ë”© ìœˆë„ìš° ì²´í¬ (1 ~ num_days)
+        # Ã­Ëœâ€žÃ¬Å¾Â¬ Ã¬â€ºâ€ Ã«â€šÂ´Ã¬â€”ÂÃ¬â€žÅ“ Ã¬Å Â¬Ã«ÂÂ¼Ã¬ÂÂ´Ã«â€Â© Ã¬Å“Ë†Ã«Ââ€žÃ¬Å¡Â° Ã¬Â²Â´Ã­ÂÂ¬ (1 ~ num_days)
         for start_day in range(1, num_days - window_size + 2):
             end_day = start_day + window_size - 1
             
             if end_day > num_days:
                 break
             
-            # start_day ~ end_day ë²”ìœ„ì—ì„œ X >= 1
+            # start_day ~ end_day Ã«Â²â€Ã¬Å“â€žÃ¬â€”ÂÃ¬â€žÅ“ X >= 1
             model.Add(
                 sum(x[nurse][day]['X'] for day in range(start_day, end_day + 1)) >= 1
             )
         
-        # ì›”ì´ˆ: past_3daysì™€ ì—°ê²°ë˜ëŠ” ìœˆë„ìš° ì²´í¬
-        # past_3daysì—ì„œ X ê°œìˆ˜ í™•ì¸
+        # Ã¬â€ºâ€Ã¬Â´Ë†: past_3daysÃ¬â„¢â‚¬ Ã¬â€”Â°ÃªÂ²Â°Ã«ÂËœÃ«Å â€ Ã¬Å“Ë†Ã«Ââ€žÃ¬Å¡Â° Ã¬Â²Â´Ã­ÂÂ¬
+        # past_3daysÃ¬â€”ÂÃ¬â€žÅ“ X ÃªÂ°Å“Ã¬Ë†Ëœ Ã­â„¢â€¢Ã¬ÂÂ¸
         past_x_count = sum(1 for d in past_3days if d == 'X')
         
         if past_x_count == 0:
-            # past_3daysì— X ì—†ìŒ â†’ 1ì¼ë¶€í„° (window_size - 3)ì¼ ë‚´ì— X í•„ìš”
-            # ì˜ˆ: window_size=7, past_3daysì— X ì—†ìŒ â†’ 1~4ì¼ ë‚´ì— X >= 1
+            # past_3daysÃ¬â€”Â X Ã¬â€”â€ Ã¬ÂÅ’ Ã¢â€ â€™ 1Ã¬ÂÂ¼Ã«Â¶â‚¬Ã­â€žÂ° (window_size - 3)Ã¬ÂÂ¼ Ã«â€šÂ´Ã¬â€”Â X Ã­â€¢â€žÃ¬Å¡â€
+            # Ã¬ËœË†: window_size=7, past_3daysÃ¬â€”Â X Ã¬â€”â€ Ã¬ÂÅ’ Ã¢â€ â€™ 1~4Ã¬ÂÂ¼ Ã«â€šÂ´Ã¬â€”Â X >= 1
             remaining_window = window_size - 3
             if remaining_window > 0 and remaining_window <= num_days:
                 model.Add(
@@ -942,14 +1124,14 @@ def main():
         print(json.dumps({
             'status': 'validation_error',
             'message': str(e)
-        }, ensure_ascii=False, indent=2))  # stdoutìœ¼ë¡œ ì¶œë ¥
+        }, ensure_ascii=False, indent=2))  # stdoutÃ¬Å“Â¼Ã«Â¡Å“ Ã¬Â¶Å“Ã«Â Â¥
         sys.exit(1)
     
     except RuntimeError as e:
         print(json.dumps({
             'status': 'solver_error',
             'message': str(e)
-        }, ensure_ascii=False, indent=2))  # stdoutìœ¼ë¡œ ì¶œë ¥
+        }, ensure_ascii=False, indent=2))  # stdoutÃ¬Å“Â¼Ã«Â¡Å“ Ã¬Â¶Å“Ã«Â Â¥
         sys.exit(1)
     
     except Exception as e:
@@ -958,7 +1140,7 @@ def main():
             'status': 'error',
             'message': str(e),
             'traceback': traceback.format_exc()
-        }, ensure_ascii=False, indent=2))  # stdoutìœ¼ë¡œ ì¶œë ¥
+        }, ensure_ascii=False, indent=2))  # stdoutÃ¬Å“Â¼Ã«Â¡Å“ Ã¬Â¶Å“Ã«Â Â¥
         sys.exit(1)
 
 
