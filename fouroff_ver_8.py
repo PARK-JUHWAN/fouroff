@@ -458,10 +458,12 @@ def parse_input(input_json):
         # Use dynamic min_N if keep types exist, else use user input
         if num_night_keep > 0 or num_day_keep > 0 or num_new > 0 or num_quit > 0:
             # Dynamic mode: use max_min_N
-            per_nurse_N = max_min_N + 1  # +1 buffer
+            ### per_nurse_N = max_min_N + 1  ### +1 buffer
+            per_nurse_N = max_min_N
         else:
             # Simple mode: use user input
-            per_nurse_N = user_min_N + 1  # +1 buffer
+            ### per_nurse_N = user_min_N + 1  ### +1 buffer
+            per_nurse_N = user_min_N
         
         # Equal distribution for D, E, X
         per_nurse_D = all_total_D // num_all
