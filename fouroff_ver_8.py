@@ -642,8 +642,9 @@ def parse_input(input_json):
 
     ### debug
     for qn in quit_nurses_list:
-        print(f"[DEBUG] quit nurse {qn['name']} wallet: {nurse_wallets.get(qn['name'], 'NOT FOUND')}", file=sys.stderr)
-    print(f"[DEBUG] N합계: {sum(w['N'] for w in nurse_wallets.values())}, total_N: {total_N}", file=sys.stderr)
+        w = nurse_wallets.get(qn['name'], {})
+        print(f"[Q] {qn['name']}: N={w.get('N','?')}", file=sys.stderr)
+    print(f"[SUM] N={sum(w['N'] for w in nurse_wallets.values())}/{total_N}", file=sys.stderr)
     ### debug
     
     # Deduct preferences from wallets
