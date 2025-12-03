@@ -89,7 +89,7 @@ Z_RULES = {
 
 WEIGHT = {"D": 0, "E": 1, "N": 2, "X": 3}
 
-# Nightìƒ¤ ë²•ì  ê¸°ì¤€ N ê°œìˆ˜ (ì „êµ­ ê³µí†µ)
+# Night샤 법적 기준 N 개수 (전국 공통)
 NIGHT_KEEP_N_COUNT = 15
 
 
@@ -357,7 +357,7 @@ def parse_input(input_json):
     # Initialize nurse_wallets
     nurse_wallets = {}
     
-    # Calculate weekday/weekend counts for Dayìƒ¤
+    # Calculate weekday/weekend counts for Day샤
     kr_holidays = holidays.KR(years=year)
     weekdays = 0
     weekends = 0
@@ -390,7 +390,7 @@ def parse_input(input_json):
             'X': num_days - NIGHT_KEEP_N_COUNT
         }
     
-    # Calculate N consumed by Nightìƒ¤ and new/quit nurses
+    # Calculate N consumed by Night샤 and new/quit nurses
     night_keep_total_N = num_night_keep * NIGHT_KEEP_N_COUNT
     new_quit_total_N = sum(n['n_count'] for n in new_nurses_list) + sum(q['n_count'] for q in quit_nurses_list)
     consumed_N = night_keep_total_N + new_quit_total_N
@@ -460,7 +460,7 @@ def parse_input(input_json):
         # Equal distribution for D, E, X
         per_nurse_D = all_total_D // num_all
         per_nurse_E = all_total_E // num_all
-        per_nurse_X = (all_total_X // num_all) + 2  # X+2 buffer
+        per_nurse_X = (all_total_X // num_all) + 1  # X+1 buffer (수정됨)
         
         # Remainder distribution
         remainder_D = all_total_D % num_all
@@ -472,10 +472,10 @@ def parse_input(input_json):
         
         if buffer_N < 0:
             raise ValueError(
-                f"N ë²„í¼ ë¶€ì¡±: {buffer_N}\n"
-                f"  All íƒ€ìž… {num_all}ëª… Ã— wallet N {per_nurse_N}ê°œ = {total_allocated_N}ê°œ\n"
-                f"  ì‚¬ìš© ê°€ëŠ¥í•œ N: {all_available_N}ê°œ\n"
-                f"  ë¶€ì¡±: {-buffer_N}ê°œ"
+                f"N 버퍼 부족: {buffer_N}\n"
+                f"  All 타입 {num_all}명 × wallet N {per_nurse_N}개 = {total_allocated_N}개\n"
+                f"  사용 가능한 N: {all_available_N}개\n"
+                f"  부족: {-buffer_N}개"
             )
         
         for i, name in enumerate(all_nurses):
@@ -519,7 +519,7 @@ def parse_input(input_json):
         
         # Initialize wallet based on keep_type
         if keep_type == 'DayFixed':
-            # Dayìƒ¤: D=weekdays in work period, E=0, N=0, X=days before start + weekends in work period
+            # Day샤: D=weekdays in work period, E=0, N=0, X=days before start + weekends in work period
             # Calculate weekdays/weekends in work period
             work_weekdays = 0
             work_weekends = 0
@@ -540,7 +540,7 @@ def parse_input(input_json):
             }
         
         elif keep_type == 'NightFixed':
-            # Nightìƒ¤ ì‹ ê·œ: ìž…ë ¥ë°›ì€ n_count ì‚¬ìš© (15 ì•„ë‹˜!)
+            # Night샤 신규: 입력받은 n_count 사용 (15 아님!)
             nurse_wallets[name] = {
                 'D': 0,
                 'E': 0,
@@ -583,7 +583,7 @@ def parse_input(input_json):
         
         # Initialize wallet based on keep_type
         if keep_type == 'DayFixed':
-            # Dayìƒ¤: D=weekdays in work period, E=0, N=0, X=weekends in work period + days after last
+            # Day샤: D=weekdays in work period, E=0, N=0, X=weekends in work period + days after last
             work_weekdays = 0
             work_weekends = 0
             for day in range(1, last_day + 1):
@@ -603,7 +603,7 @@ def parse_input(input_json):
             }
         
         elif keep_type == 'NightFixed':
-            # Nightìƒ¤ í‡´ì‚¬: ìž…ë ¥ë°›ì€ n_count ì‚¬ìš©
+            # Night샤 퇴사: 입력받은 n_count 사용
             nurse_wallets[name] = {
                 'D': 0,
                 'E': 0,
@@ -669,14 +669,14 @@ def parse_input(input_json):
             f"  Reduce Low Grade count or increase D/E/N staff per day"
         )
     
-    # Extract max_consecutive_work (ÃƒÂªÃ‚Â¸Ã‚Â°ÃƒÂ«Ã‚Â³Ã‚Â¸ÃƒÂªÃ‚Â°Ã¢â‚¬â„¢ 6)
+    # Extract max_consecutive_work (기본값 6)
     max_consecutive_work = data.get('max_consecutive_work', 6)
     
     # Validate range (1~10)
     if not (1 <= max_consecutive_work <= 10):
         raise ValueError(f"max_consecutive_work must be 1~10, got {max_consecutive_work}")
     
-    # Extract min_N for Constraint 3 (min_N Ã«Â³Â´Ã¬Å¾Â¥Ã¬Å¡Â©)
+    # Extract min_N for Constraint 3 (min_N 보장용)
     nurse_wallet_min_global = data.get('nurse_wallet_min', {})
     min_N_value = nurse_wallet_min_global.get('N', 6)
     
@@ -748,7 +748,7 @@ def solve_cpsat(parsed_data):
         for duty in duties:
             model.Add(sum(x[nurse][day][duty] for nurse in nurses) == daily_wallet[day][duty])
     
-    # Constraint 3: Satisfy nurse_wallet (Keep typeë³„ ì •í™•í•œ ì œì•½)
+    # Constraint 3: Satisfy nurse_wallet (Keep type별 정확한 제약)
     min_N = parsed_data.get('min_N', 6)
     new_nurses_dict = parsed_data['new_nurses']
     quit_nurses_dict = parsed_data['quit_nurses']
@@ -764,54 +764,62 @@ def solve_cpsat(parsed_data):
             target = nurse_wallets[nurse][duty]
             actual = sum(x[nurse][day][duty] for day in days)
             
-            # ì‹ ê·œ/í‡´ì‚¬ ê°„í˜¸ì‚¬: n_count ì •í™•ížˆ ë§žì¶¤
+            # 신규/퇴사 간호사: n_count 정확히 맞춤
             if is_new or is_quit:
                 n_count_target = new_nurses_dict[nurse]['n_count'] if is_new else quit_nurses_dict[nurse]['n_count']
                 
                 if duty == 'N':
-                    # Nì€ ìž…ë ¥ë°›ì€ n_count ì •í™•ížˆ
+                    # N은 입력받은 n_count 정확히
                     model.Add(actual == n_count_target)
+                elif duty == 'X':
+                    # X: 하한 없음, 상한만
+                    model.Add(actual <= target + 1)
                 else:
-                    # D, E, XëŠ” wallet Â±1 í—ˆìš©
+                    # D, E: ±1 허용
                     model.Add(actual >= target - 1)
                     model.Add(actual <= target + 1)
             
-            # Nightìƒ¤ (ê¸°ì¡´ ê·¼ë¬´ìž)
+            # Night샤 (기존 근무자)
             elif keep_type == 'NightFixed':
                 if duty == 'N':
-                    # N = 15 (ë²•ì  ê¸°ì¤€) ì •í™•ížˆ
+                    # N = 15 (법적 기준) 정확히
                     model.Add(actual == NIGHT_KEEP_N_COUNT)
                 elif duty == 'D' or duty == 'E':
-                    # D, EëŠ” 0
+                    # D, E는 0
                     model.Add(actual == 0)
                 else:
-                    # XëŠ” wallet Â±1 í—ˆìš©
-                    model.Add(actual >= target - 1)
+                    # X: 하한 없음, 상한만
                     model.Add(actual <= target + 1)
             
-            # Dayìƒ¤ (ê¸°ì¡´ ê·¼ë¬´ìž)
+            # Day샤 (기존 근무자)
             elif keep_type == 'DayFixed':
                 if duty == 'N':
-                    # Nì€ 0
+                    # N은 0
                     model.Add(actual == 0)
                 elif duty == 'E':
-                    # Eë„ 0
+                    # E도 0
                     model.Add(actual == 0)
                 else:
-                    # D, XëŠ” wallet Â±1 í—ˆìš©
-                    model.Add(actual >= target - 1)
-                    model.Add(actual <= target + 1)
+                    # D는 ±1, X는 상한만
+                    if duty == 'D':
+                        model.Add(actual >= target - 1)
+                        model.Add(actual <= target + 1)
+                    else:  # X
+                        model.Add(actual <= target + 1)
             
-            # All íƒ€ìž… (ê¸°ì¡´ ê·¼ë¬´ìž)
+            # All 타입 (기존 근무자)
             else:
                 if duty == 'N':
-                    # N: min_N ì´ìƒ ë³´ìž¥
+                    # N: min_N 이상
                     model.Add(actual >= min_N)
+                    model.Add(actual <= target + 1)
+                elif duty == 'X':
+                    # X: 하한 없음, 상한만
+                    model.Add(actual <= target + 1)
                 else:
-                    # D, E, X: -1 í—ˆìš©
+                    # D, E: ±1 허용
                     model.Add(actual >= target - 1)
-                
-                model.Add(actual <= target + 1)
+                    model.Add(actual <= target + 1)
     
     
     # Constraint 4: Fix preference duties
@@ -835,9 +843,10 @@ def solve_cpsat(parsed_data):
         for day in range(1, start_day):
             if day in days:
                 model.Add(x[name][day]['X'] == 1)
-        # First day: D
-        if start_day in days:
-            model.Add(x[name][start_day]['D'] == 1)
+        # 첫날 D 강제 제거됨
+        # - All: 자유롭게 D/E/N 배정
+        # - DayKeep: Constraint 7에서 E/N=0이므로 D만 가능
+        # - NightKeep: Constraint 7에서 D/E=0이므로 N만 가능
     
     # Constraint 6: Quit nurses
     for name, data in quit_nurses.items():
@@ -976,33 +985,33 @@ def solve_cpsat(parsed_data):
                 model.Add(sum(x[nurse][day][duty] for nurse in low_grade_nurses) <= 1)
 
     # Constraint 10: Maximum Consecutive Work Days (Sliding Window)
-    # ÃƒÂ¬Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¬Ã…Â¡Ã‚Â©ÃƒÂ¬Ã…Â¾Ã‚ÂÃƒÂªÃ‚Â°Ã¢â€šÂ¬ NÃƒÂ¬Ã‚ÂÃ‚Â¼ ÃƒÂ¬Ã…Â¾Ã¢â‚¬Â¦ÃƒÂ«Ã‚Â Ã‚Â¥ ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ (N+1)ÃƒÂ¬Ã‚ÂÃ‚Â¼ ÃƒÂ¬Ã…â€œÃ‹â€ ÃƒÂ«Ã‚ÂÃ¢â‚¬Å¾ÃƒÂ¬Ã…Â¡Ã‚Â°ÃƒÂ«Ã‚Â§Ã‹â€ ÃƒÂ«Ã¢â‚¬Â¹Ã‚Â¤ X >= 1ÃƒÂªÃ‚Â°Ã…â€œ
+    # 사용자가 N일 입력 → (N+1)일 윈도우마다 X >= 1개
     max_consecutive_work = parsed_data.get('max_consecutive_work', 6)
-    window_size = max_consecutive_work + 1  # ÃƒÂ¬Ã‹Å“Ã‹â€ : 6 ÃƒÂ¬Ã…Â¾Ã¢â‚¬Â¦ÃƒÂ«Ã‚Â Ã‚Â¥ ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ 7ÃƒÂ¬Ã‚ÂÃ‚Â¼ ÃƒÂ¬Ã…â€œÃ‹â€ ÃƒÂ«Ã‚ÂÃ¢â‚¬Å¾ÃƒÂ¬Ã…Â¡Ã‚Â°
+    window_size = max_consecutive_work + 1  # 예: 6 입력 → 7일 윈도우
     
     for nurse in nurses:
         nurse_data = next(n for n in nurses_data if n['name'] == nurse)
         past_3days = nurse_data['past_3days']
         
-        # ÃƒÂ­Ã‹Å“Ã¢â‚¬Å¾ÃƒÂ¬Ã…Â¾Ã‚Â¬ ÃƒÂ¬Ã¢â‚¬ÂºÃ¢â‚¬Â ÃƒÂ«Ã¢â‚¬Å¡Ã‚Â´ÃƒÂ¬Ã¢â‚¬â€Ã‚ÂÃƒÂ¬Ã¢â‚¬Å¾Ã…â€œ ÃƒÂ¬Ã…Â Ã‚Â¬ÃƒÂ«Ã‚ÂÃ‚Â¼ÃƒÂ¬Ã‚ÂÃ‚Â´ÃƒÂ«Ã¢â‚¬ÂÃ‚Â© ÃƒÂ¬Ã…â€œÃ‹â€ ÃƒÂ«Ã‚ÂÃ¢â‚¬Å¾ÃƒÂ¬Ã…Â¡Ã‚Â° ÃƒÂ¬Ã‚Â²Ã‚Â´ÃƒÂ­Ã‚ÂÃ‚Â¬ (1 ~ num_days)
+        # 현재 월 내에서 슬라이딩 윈도우 체크 (1 ~ num_days)
         for start_day in range(1, num_days - window_size + 2):
             end_day = start_day + window_size - 1
             
             if end_day > num_days:
                 break
             
-            # start_day ~ end_day ÃƒÂ«Ã‚Â²Ã¢â‚¬ÂÃƒÂ¬Ã…â€œÃ¢â‚¬Å¾ÃƒÂ¬Ã¢â‚¬â€Ã‚ÂÃƒÂ¬Ã¢â‚¬Å¾Ã…â€œ X >= 1
+            # start_day ~ end_day 범위에서 X >= 1
             model.Add(
                 sum(x[nurse][day]['X'] for day in range(start_day, end_day + 1)) >= 1
             )
         
-        # ÃƒÂ¬Ã¢â‚¬ÂºÃ¢â‚¬ÂÃƒÂ¬Ã‚Â´Ã‹â€ : past_3daysÃƒÂ¬Ã¢â€žÂ¢Ã¢â€šÂ¬ ÃƒÂ¬Ã¢â‚¬â€Ã‚Â°ÃƒÂªÃ‚Â²Ã‚Â°ÃƒÂ«Ã‚ÂÃ‹Å“ÃƒÂ«Ã…Â Ã¢â‚¬Â ÃƒÂ¬Ã…â€œÃ‹â€ ÃƒÂ«Ã‚ÂÃ¢â‚¬Å¾ÃƒÂ¬Ã…Â¡Ã‚Â° ÃƒÂ¬Ã‚Â²Ã‚Â´ÃƒÂ­Ã‚ÂÃ‚Â¬
-        # past_3daysÃƒÂ¬Ã¢â‚¬â€Ã‚ÂÃƒÂ¬Ã¢â‚¬Å¾Ã…â€œ X ÃƒÂªÃ‚Â°Ã…â€œÃƒÂ¬Ã‹â€ Ã‹Å“ ÃƒÂ­Ã¢â€žÂ¢Ã¢â‚¬Â¢ÃƒÂ¬Ã‚ÂÃ‚Â¸
+        # 월초: past_3days와 연결되는 윈도우 체크
+        # past_3days에서 X 개수 확인
         past_x_count = sum(1 for d in past_3days if d == 'X')
         
         if past_x_count == 0:
-            # past_3daysÃƒÂ¬Ã¢â‚¬â€Ã‚Â X ÃƒÂ¬Ã¢â‚¬â€Ã¢â‚¬Â ÃƒÂ¬Ã‚ÂÃ…â€™ ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ 1ÃƒÂ¬Ã‚ÂÃ‚Â¼ÃƒÂ«Ã‚Â¶Ã¢â€šÂ¬ÃƒÂ­Ã¢â‚¬Å¾Ã‚Â° (window_size - 3)ÃƒÂ¬Ã‚ÂÃ‚Â¼ ÃƒÂ«Ã¢â‚¬Å¡Ã‚Â´ÃƒÂ¬Ã¢â‚¬â€Ã‚Â X ÃƒÂ­Ã¢â‚¬Â¢Ã¢â‚¬Å¾ÃƒÂ¬Ã…Â¡Ã¢â‚¬Â
-            # ÃƒÂ¬Ã‹Å“Ã‹â€ : window_size=7, past_3daysÃƒÂ¬Ã¢â‚¬â€Ã‚Â X ÃƒÂ¬Ã¢â‚¬â€Ã¢â‚¬Â ÃƒÂ¬Ã‚ÂÃ…â€™ ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ 1~4ÃƒÂ¬Ã‚ÂÃ‚Â¼ ÃƒÂ«Ã¢â‚¬Å¡Ã‚Â´ÃƒÂ¬Ã¢â‚¬â€Ã‚Â X >= 1
+            # past_3days에 X 없음 → 1일부터 (window_size - 3)일 내에 X 필요
+            # 예: window_size=7, past_3days에 X 없음 → 1~4일 내에 X >= 1
             remaining_window = window_size - 3
             if remaining_window > 0 and remaining_window <= num_days:
                 model.Add(
@@ -1146,14 +1155,14 @@ def main():
         print(json.dumps({
             'status': 'validation_error',
             'message': str(e)
-        }, ensure_ascii=False, indent=2))  # stdoutÃƒÂ¬Ã…â€œÃ‚Â¼ÃƒÂ«Ã‚Â¡Ã…â€œ ÃƒÂ¬Ã‚Â¶Ã…â€œÃƒÂ«Ã‚Â Ã‚Â¥
+        }, ensure_ascii=False, indent=2))  # stdout으로 출력
         sys.exit(1)
     
     except RuntimeError as e:
         print(json.dumps({
             'status': 'solver_error',
             'message': str(e)
-        }, ensure_ascii=False, indent=2))  # stdoutÃƒÂ¬Ã…â€œÃ‚Â¼ÃƒÂ«Ã‚Â¡Ã…â€œ ÃƒÂ¬Ã‚Â¶Ã…â€œÃƒÂ«Ã‚Â Ã‚Â¥
+        }, ensure_ascii=False, indent=2))  # stdout으로 출력
         sys.exit(1)
     
     except Exception as e:
@@ -1162,7 +1171,7 @@ def main():
             'status': 'error',
             'message': str(e),
             'traceback': traceback.format_exc()
-        }, ensure_ascii=False, indent=2))  # stdoutÃƒÂ¬Ã…â€œÃ‚Â¼ÃƒÂ«Ã‚Â¡Ã…â€œ ÃƒÂ¬Ã‚Â¶Ã…â€œÃƒÂ«Ã‚Â Ã‚Â¥
+        }, ensure_ascii=False, indent=2))  # stdout으로 출력
         sys.exit(1)
 
 
