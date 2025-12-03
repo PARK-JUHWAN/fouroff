@@ -322,6 +322,11 @@ def parse_input(input_json):
     new_nurse_names = set(n['name'] for n in new_nurses_list)
     quit_nurse_names = set(q['name'] for q in quit_nurses_list)
     
+    # Extract max_consecutive_work early (needed for new/quit wallet calculation)
+    max_consecutive_work = data.get('max_consecutive_work', 6)
+    if not (1 <= max_consecutive_work <= 10):
+        raise ValueError(f"max_consecutive_work must be 1~10, got {max_consecutive_work}")
+    
     # Classify nurses by keep_type (excluding new/quit for All count)
     all_nurses = []
     day_keep_nurses = []
@@ -549,18 +554,22 @@ def parse_input(input_json):
             }
         
         else:
-            # All type: X before start, specified N count, D/E distributed
-            nurse_wallets[name] = {
-                'D': 0,
-                'E': 0,
-                'N': n_count,
-                'X': start_day - 1
-            }
+            # All type: X before start + X_work, specified N count, D/E distributed
+            # BUG FIX: Constraint 10 requires X within work period
+            X_work = (work_days - 1) // max_consecutive_work  # Required X within work period
+            X_total = (start_day - 1) + X_work
             
-            # Recalculate D, E
-            remaining = work_days - n_count
-            nurse_wallets[name]['D'] = remaining // 2
-            nurse_wallets[name]['E'] = remaining - nurse_wallets[name]['D']
+            # Recalculate D, E (accounting for X_work)
+            remaining = work_days - n_count - X_work
+            D_count = remaining // 2
+            E_count = remaining - D_count
+            
+            nurse_wallets[name] = {
+                'D': D_count,
+                'E': E_count,
+                'N': n_count,
+                'X': X_total
+            }
         
         new_nurses[name] = {'start_day': start_day, 'n_count': n_count, 'keep_type': keep_type}
     
@@ -612,18 +621,22 @@ def parse_input(input_json):
             }
         
         else:
-            # All type: X after last day, specified N count, D/E distributed
-            nurse_wallets[name] = {
-                'D': 0,
-                'E': 0,
-                'N': n_count,
-                'X': num_days - last_day
-            }
+            # All type: X after last day + X_work, specified N count, D/E distributed
+            # BUG FIX: Constraint 10 requires X within work period
+            X_work = (work_days - 1) // max_consecutive_work  # Required X within work period
+            X_total = (num_days - last_day) + X_work
             
-            # Recalculate D, E
-            remaining = work_days - n_count
-            nurse_wallets[name]['D'] = remaining // 2
-            nurse_wallets[name]['E'] = remaining - nurse_wallets[name]['D']
+            # Recalculate D, E (accounting for X_work)
+            remaining = work_days - n_count - X_work
+            D_count = remaining // 2
+            E_count = remaining - D_count
+            
+            nurse_wallets[name] = {
+                'D': D_count,
+                'E': E_count,
+                'N': n_count,
+                'X': X_total
+            }
         
         quit_nurses[name] = {'last_day': last_day, 'n_count': n_count, 'keep_type': keep_type}
     
@@ -669,12 +682,8 @@ def parse_input(input_json):
             f"  Reduce Low Grade count or increase D/E/N staff per day"
         )
     
-    # Extract max_consecutive_work (기본값 6)
-    max_consecutive_work = data.get('max_consecutive_work', 6)
-    
-    # Validate range (1~10)
-    if not (1 <= max_consecutive_work <= 10):
-        raise ValueError(f"max_consecutive_work must be 1~10, got {max_consecutive_work}")
+    # max_consecutive_work already extracted earlier (before new/quit wallet calculation)
+    # Just for reference: max_consecutive_work = data.get('max_consecutive_work', 6)
     
     # Extract min_N for Constraint 3 (min_N 보장용)
     nurse_wallet_min_global = data.get('nurse_wallet_min', {})
