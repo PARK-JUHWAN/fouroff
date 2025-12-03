@@ -639,7 +639,12 @@ def parse_input(input_json):
                 'X': X_total
             }
         quit_nurses[name] = {'last_day': last_day, 'n_count': n_count, 'keep_type': keep_type}
-    print(f"[DEBUG] nurse_wallets: {nurse_wallets}", file=sys.stderr)   ### debug
+
+    ### debug
+    for qn in quit_nurses_list:
+        print(f"[DEBUG] quit nurse {qn['name']} wallet: {nurse_wallets.get(qn['name'], 'NOT FOUND')}", file=sys.stderr)
+    print(f"[DEBUG] N합계: {sum(w['N'] for w in nurse_wallets.values())}, total_N: {total_N}", file=sys.stderr)
+    ### debug
     
     # Deduct preferences from wallets
     preferences = data.get('preferences', [])
