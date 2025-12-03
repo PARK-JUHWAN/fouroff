@@ -819,8 +819,11 @@ def solve_cpsat(parsed_data):
             # All 타입 (기존 근무자)
             else:
                 if duty == 'N':
-                    # N: min_N 이상
-                    model.Add(actual >= min_N)
+                    # N: min_N 이상 (단, 퇴사자/신규는 wallet 값 사용)
+                    if nurse in quit_nurses or nurse in new_nurses:
+                        model.Add(actual >= target - 1)
+                    else:
+                        model.Add(actual >= min_N)
                     model.Add(actual <= target + 1)
                 elif duty == 'X':
                     # X: 하한 없음, 상한만
