@@ -638,8 +638,8 @@ def parse_input(input_json):
                 'N': n_count,
                 'X': X_total
             }
-        
         quit_nurses[name] = {'last_day': last_day, 'n_count': n_count, 'keep_type': keep_type}
+    print(f"[DEBUG] nurse_wallets: {nurse_wallets}", file=sys.stderr)   ### debug
     
     # Deduct preferences from wallets
     preferences = data.get('preferences', [])
