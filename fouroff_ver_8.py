@@ -319,6 +319,7 @@ def parse_input(input_json):
     # Get new/quit nurse lists
     new_nurses_list = data.get('new', [])
     quit_nurses_list = data.get('quit', [])
+    print(f"[DEBUG] quit_nurses_list: {quit_nurses_list}", file=sys.stderr)   ### debug
     new_nurse_names = set(n['name'] for n in new_nurses_list)
     quit_nurse_names = set(q['name'] for q in quit_nurses_list)
     
