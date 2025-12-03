@@ -281,9 +281,9 @@ def parse_input(input_json):
     weekend_wallet = daily_wallet_config.get('weekend', {})
     
     # Debug: Log actual input values
-    print(f"[INPUT] daily_wallet_config: {daily_wallet_config}", file=sys.stderr)
-    print(f"[INPUT] weekday_wallet: {weekday_wallet}", file=sys.stderr)
-    print(f"[INPUT] weekend_wallet: {weekend_wallet}", file=sys.stderr)
+    ### print(f"[INPUT] daily_wallet_config: {daily_wallet_config}", file=sys.stderr)
+    ### print(f"[INPUT] weekday_wallet: {weekday_wallet}", file=sys.stderr)
+    ### print(f"[INPUT] weekend_wallet: {weekend_wallet}", file=sys.stderr)
     
     daily_wallet = {}
     for day in range(1, num_days + 1):
@@ -319,7 +319,7 @@ def parse_input(input_json):
     # Get new/quit nurse lists
     new_nurses_list = data.get('new', [])
     quit_nurses_list = data.get('quit', [])
-    print(f"[DEBUG] quit_nurses_list: {quit_nurses_list}", file=sys.stderr)   ### debug
+    ### print(f"[DEBUG] quit_nurses_list: {quit_nurses_list}", file=sys.stderr)
     new_nurse_names = set(n['name'] for n in new_nurses_list)
     quit_nurse_names = set(q['name'] for q in quit_nurses_list)
     
@@ -1152,9 +1152,9 @@ def main():
     try:
         raw_data = json.loads(input_json)
         dwc = raw_data.get('daily_wallet_config', {})
-        print(f"[IMMEDIATE] daily_wallet_config.weekday: {dwc.get('weekday', 'MISSING')}", file=sys.stderr)
-        print(f"[IMMEDIATE] daily_wallet_config.weekend: {dwc.get('weekend', 'MISSING')}", file=sys.stderr)
-        print(f"[IMMEDIATE] nurse_wallet_min: {raw_data.get('nurse_wallet_min', 'MISSING')}", file=sys.stderr)
+        ### print(f"[IMMEDIATE] daily_wallet_config.weekday: {dwc.get('weekday', 'MISSING')}", file=sys.stderr)
+        ### print(f"[IMMEDIATE] daily_wallet_config.weekend: {dwc.get('weekend', 'MISSING')}", file=sys.stderr)
+        ### print(f"[IMMEDIATE] nurse_wallet_min: {raw_data.get('nurse_wallet_min', 'MISSING')}", file=sys.stderr)
         sys.stderr.flush()
     except:
         pass
