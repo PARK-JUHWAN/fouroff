@@ -1062,6 +1062,26 @@ def solve_cpsat(parsed_data):
             if next_day < 1 or next_day > num_days:
                 continue
             
+            # NEW: Skip zRule for new nurses' pre-start windows
+            # 신규 간호사는 start_day 이전의 past_3days가 "이 병동 근무"가 아니므로
+            # zRule 적용 대상이 아님
+            if nurse in new_nurses:
+                start_day = new_nurses[nurse]['start_day']
+                # window의 양수 day 중 하나라도 < start_day이면 건너뛰기
+                window_days = [d for d in [d1, d2, d3, next_day] if d > 0]
+                if any(d < start_day for d in window_days):
+                    continue
+            
+            # NEW: Skip zRule for quit nurses' post-last windows
+            # 퇴사 간호사는 last_day 이후가 X로 강제되어 있으므로
+            # zRule 적용 불필요 (X는 어떤 패턴이든 허용)
+            if nurse in quit_nurses:
+                last_day = quit_nurses[nurse]['last_day']
+                # window의 양수 day 중 하나라도 > last_day이면 건너뛰기
+                window_days = [d for d in [d1, d2, d3, next_day] if d > 0]
+                if any(d > last_day for d in window_days):
+                    continue
+            
             # Determine duty sources for each day
             duty_srcs = []
             for d in [d1, d2, d3]:
