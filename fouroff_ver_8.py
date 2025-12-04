@@ -540,8 +540,15 @@ def parse_input(input_json):
         # Equal distribution for D, E, X
         per_nurse_D = all_total_D // num_all
         per_nurse_E = all_total_E // num_all
-        per_nurse_X = (all_total_X // num_all) + 1  # X+1 buffer (수정됨)
-        
+        ### per_nurse_X = (all_total_X // num_all) + 1  # X+1 buffer
+
+        ### change
+        if num_quit > 0 or num_new > 0:
+            per_nurse_X = all_total_X // num_all  # No buffer
+        else:
+            per_nurse_X = (all_total_X // num_all) + 1  # X+1 buffer
+        ### change
+
         # Remainder distribution
         remainder_D = all_total_D % num_all
         remainder_E = all_total_E % num_all
