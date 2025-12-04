@@ -131,7 +131,7 @@ def validate_input(data, parsed_data):
 
     ### delete
     # # Validate daily_wallet sum
-    # daily_wallet = parsed_data['daily_wallet']
+    daily_wallet = parsed_data['daily_wallet']
     # for day, wallet in daily_wallet.items():
     #     total = sum(wallet.values())
     #     if total != nurse_count:
