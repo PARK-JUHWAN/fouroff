@@ -1172,30 +1172,39 @@ def solve_cpsat(parsed_data):
         nurse_data = next(n for n in nurses_data if n['name'] == nurse)
         past_3days = nurse_data['past_3days']
         
-        # 현재 월 내에서 슬라이딩 윈도우 체크 (1 ~ num_days)
-        for start_day in range(1, num_days - window_size + 2):
-            end_day = start_day + window_size - 1
+        # 신규/퇴사 간호사: 근무 기간만 고려
+        work_start = 1
+        work_end = num_days
+        
+        if nurse in new_nurses:
+            work_start = new_nurses[nurse]['start_day']
+        if nurse in quit_nurses:
+            work_end = quit_nurses[nurse]['last_day']
+        
+        # 근무 기간 내에서 슬라이딩 윈도우 체크
+        for win_start in range(work_start, work_end - window_size + 2):
+            win_end = win_start + window_size - 1
             
-            if end_day > num_days:
+            if win_end > work_end:
                 break
             
-            # start_day ~ end_day 범위에서 X >= 1
+            # win_start ~ win_end 범위에서 X >= 1
             model.Add(
-                sum(x[nurse][day]['X'] for day in range(start_day, end_day + 1)) >= 1
+                sum(x[nurse][day]['X'] for day in range(win_start, win_end + 1)) >= 1
             )
         
-        # 월초: past_3days와 연결되는 윈도우 체크
-        # past_3days에서 X 개수 확인
-        past_x_count = sum(1 for d in past_3days if d == 'X')
-        
-        if past_x_count == 0:
-            # past_3days에 X 없음 → 1일부터 (window_size - 3)일 내에 X 필요
-            # 예: window_size=7, past_3days에 X 없음 → 1~4일 내에 X >= 1
-            remaining_window = window_size - 3
-            if remaining_window > 0 and remaining_window <= num_days:
-                model.Add(
-                    sum(x[nurse][day]['X'] for day in range(1, remaining_window + 1)) >= 1
-                )
+        # 월초: past_3days와 연결되는 윈도우 체크 (기존 간호사만)
+        # 신규 간호사는 past_3days가 X이므로 건너뛰기
+        if nurse not in new_nurses:
+            past_x_count = sum(1 for d in past_3days if d == 'X')
+            
+            if past_x_count == 0:
+                # past_3days에 X 없음 → 1일부터 (window_size - 3)일 내에 X 필요
+                remaining_window = window_size - 3
+                if remaining_window > 0 and remaining_window <= num_days:
+                    model.Add(
+                        sum(x[nurse][day]['X'] for day in range(1, remaining_window + 1)) >= 1
+                    )
 
     model.Minimize(0)
     
