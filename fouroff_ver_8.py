@@ -568,11 +568,19 @@ def parse_input(input_json):
         #     )
         ### delete
         
+        # FIX: N, X remainder 분배 (신규/퇴사 있을 때만)
+        if num_quit > 0 or num_new > 0:
+            remainder_N = all_available_N % num_all
+            remainder_X = all_total_X % num_all
+        else:
+            remainder_N = 0  # N+1 버퍼 사용하므로 remainder 불필요
+            remainder_X = 0  # X+1 버퍼 사용하므로 remainder 불필요
+        
         for i, name in enumerate(all_nurses):
             d_count = per_nurse_D + (1 if i < remainder_D else 0)
             e_count = per_nurse_E + (1 if i < remainder_E else 0)
-            n_count = per_nurse_N
-            x_count = per_nurse_X
+            n_count = per_nurse_N + (1 if i < remainder_N else 0)
+            x_count = per_nurse_X + (1 if i < remainder_X else 0)
             
             nurse_wallets[name] = {
                 'D': d_count,
@@ -759,6 +767,8 @@ def parse_input(input_json):
     print(f"[D02] new_list_len={len(new_nurses_list)}", file=sys.stderr, flush=True)
     for q in quit_nurses_list:
         print(f"[D03] quit: {q.get('name')}, last={q.get('last_day')}, n={q.get('n_count')}", file=sys.stderr, flush=True)
+    for n in new_nurses_list:
+        print(f"[D03b] new: {n.get('name')}, start={n.get('start_day')}, n={n.get('n_count')}", file=sys.stderr, flush=True)
     print(f"[D04] quit_new_total_D={quit_new_total_D}", file=sys.stderr, flush=True)
     print(f"[D05] quit_new_total_E={quit_new_total_E}", file=sys.stderr, flush=True)
     print(f"[D06] quit_new_total_X={quit_new_total_X}", file=sys.stderr, flush=True)
@@ -770,6 +780,7 @@ def parse_input(input_json):
     print(f"[D12] E_sum={sum(w['E'] for w in nurse_wallets.values())}", file=sys.stderr, flush=True)
     print(f"[D13] N_sum={sum(w['N'] for w in nurse_wallets.values())}", file=sys.stderr, flush=True)
     print(f"[D14] X_sum={sum(w['X'] for w in nurse_wallets.values())}", file=sys.stderr, flush=True)
+    print(f"[D15] total_N={total_N}, all_available_N={all_available_N}", file=sys.stderr, flush=True)
     for name, w in nurse_wallets.items():
         if name in quit_nurse_names:
             print(f"[D15] quit_wallet: {name}, X={w['X']}", file=sys.stderr, flush=True)
