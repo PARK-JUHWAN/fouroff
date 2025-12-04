@@ -714,32 +714,37 @@ def parse_input(input_json):
         quit_nurses[name] = {'last_day': last_day, 'n_count': n_count, 'keep_type': keep_type}
 
     ### debug
-    print(f"[D1] num_all={num_all}", file=sys.stderr, flush=True)
-    print(f"[D2] num_quit={num_quit}", file=sys.stderr, flush=True)
-    print(f"[D3] total_N={total_N}", file=sys.stderr, flush=True)
-    print(f"[D4] all_available_N={all_available_N}", file=sys.stderr, flush=True)
-    print(f"[D5] per_nurse_N={per_nurse_N}", file=sys.stderr, flush=True)
-    print(f"[D6] max_consecutive_work={max_consecutive_work}", file=sys.stderr, flush=True)
-    for qn in quit_nurses_list:
-        qname = qn['name']
-        w = nurse_wallets.get(qname, {})
-        print(f"[D7] quit_in_wallet={qname in nurse_wallets}", file=sys.stderr, flush=True)
-        print(f"[D8] q_D={w.get('D','?')}", file=sys.stderr, flush=True)
-        print(f"[D9] q_E={w.get('E','?')}", file=sys.stderr, flush=True)
-        print(f"[D10] q_N={w.get('N','?')}", file=sys.stderr, flush=True)
-        print(f"[D11] q_X={w.get('X','?')}", file=sys.stderr, flush=True)
-    print(f"[D12] wallet_count={len(nurse_wallets)}", file=sys.stderr, flush=True)
-    print(f"[D13] N_sum={sum(w['N'] for w in nurse_wallets.values())}", file=sys.stderr, flush=True)
-    print(f"[D14] quit_nurses_keys={list(quit_nurses.keys())}", file=sys.stderr, flush=True)
-    # 추가
-    print(f"[D15] D_sum={sum(w['D'] for w in nurse_wallets.values())}", file=sys.stderr, flush=True)
-    print(f"[D16] E_sum={sum(w['E'] for w in nurse_wallets.values())}", file=sys.stderr, flush=True)
-    print(f"[D17] total_D={total_D}", file=sys.stderr, flush=True)
-    print(f"[D18] total_E={total_E}", file=sys.stderr, flush=True)
-    print(f"[D19] quit_new_total_D={quit_new_total_D}", file=sys.stderr, flush=True)
-    print(f"[D20] quit_new_total_E={quit_new_total_E}", file=sys.stderr, flush=True)
-    print(f"[D21] all_total_D={all_total_D}", file=sys.stderr, flush=True)
-    print(f"[D22] all_total_E={all_total_E}", file=sys.stderr, flush=True)
+    # print(f"[D1] num_all={num_all}", file=sys.stderr, flush=True)
+    # print(f"[D2] num_quit={num_quit}", file=sys.stderr, flush=True)
+    # print(f"[D3] total_N={total_N}", file=sys.stderr, flush=True)
+    # print(f"[D4] all_available_N={all_available_N}", file=sys.stderr, flush=True)
+    # print(f"[D5] per_nurse_N={per_nurse_N}", file=sys.stderr, flush=True)
+    # print(f"[D6] max_consecutive_work={max_consecutive_work}", file=sys.stderr, flush=True)
+    # for qn in quit_nurses_list:
+    #     qname = qn['name']
+    #     w = nurse_wallets.get(qname, {})
+    #     print(f"[D7] quit_in_wallet={qname in nurse_wallets}", file=sys.stderr, flush=True)
+    #     print(f"[D8] q_D={w.get('D','?')}", file=sys.stderr, flush=True)
+    #     print(f"[D9] q_E={w.get('E','?')}", file=sys.stderr, flush=True)
+    #     print(f"[D10] q_N={w.get('N','?')}", file=sys.stderr, flush=True)
+    #     print(f"[D11] q_X={w.get('X','?')}", file=sys.stderr, flush=True)
+    # print(f"[D12] wallet_count={len(nurse_wallets)}", file=sys.stderr, flush=True)
+    # print(f"[D13] N_sum={sum(w['N'] for w in nurse_wallets.values())}", file=sys.stderr, flush=True)
+    # print(f"[D14] quit_nurses_keys={list(quit_nurses.keys())}", file=sys.stderr, flush=True)
+    # # 추가
+    # print(f"[D15] D_sum={sum(w['D'] for w in nurse_wallets.values())}", file=sys.stderr, flush=True)
+    # print(f"[D16] E_sum={sum(w['E'] for w in nurse_wallets.values())}", file=sys.stderr, flush=True)
+    # print(f"[D17] total_D={total_D}", file=sys.stderr, flush=True)
+    # print(f"[D18] total_E={total_E}", file=sys.stderr, flush=True)
+    # print(f"[D19] quit_new_total_D={quit_new_total_D}", file=sys.stderr, flush=True)
+    # print(f"[D20] quit_new_total_E={quit_new_total_E}", file=sys.stderr, flush=True)
+    # print(f"[D21] all_total_D={all_total_D}", file=sys.stderr, flush=True)
+    # print(f"[D22] all_total_E={all_total_E}", file=sys.stderr, flush=True)
+    print(f"[D1] D: sum={sum(w['D'] for w in nurse_wallets.values())}, total={total_D}", file=sys.stderr, flush=True)
+    print(f"[D2] E: sum={sum(w['E'] for w in nurse_wallets.values())}, total={total_E}", file=sys.stderr, flush=True)
+    print(f"[D3] N: sum={sum(w['N'] for w in nurse_wallets.values())}, total={total_N}", file=sys.stderr, flush=True)
+    print(f"[D4] X: sum={sum(w['X'] for w in nurse_wallets.values())}, total={total_X}", file=sys.stderr, flush=True)
+    print(f"[D5] per: D={per_nurse_D}, E={per_nurse_E}, N={per_nurse_N}, X={per_nurse_X}", file=sys.stderr, flush=True)
     ### debug
     
     # Deduct preferences from wallets
