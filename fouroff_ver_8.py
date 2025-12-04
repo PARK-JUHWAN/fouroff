@@ -322,6 +322,24 @@ def parse_input(input_json):
     ### print(f"[DEBUG] quit_nurses_list: {quit_nurses_list}", file=sys.stderr)
     new_nurse_names = set(n['name'] for n in new_nurses_list)
     quit_nurse_names = set(q['name'] for q in quit_nurses_list)
+
+    ### change
+    for new_data in new_nurses_list:
+        start_day = new_data.get('start_day')
+        if start_day is None:
+            continue
+        for day in range(1, start_day):  # 1 ~ start_day-1
+            if day in daily_wallet:
+                daily_wallet[day]['X'] -= 1
+    # 퇴사자: last_day 이후 = X 강제
+    for quit_data in quit_nurses_list:
+        last_day = quit_data.get('last_day')
+        if last_day is None:
+            continue
+        for day in range(last_day + 1, num_days + 1):  # last_day+1 ~ num_days
+            if day in daily_wallet:
+                daily_wallet[day]['X'] -= 1
+    ### change
     
     # Extract max_consecutive_work early (needed for new/quit wallet calculation)
     max_consecutive_work = data.get('max_consecutive_work', 6)
