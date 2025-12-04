@@ -731,6 +731,15 @@ def parse_input(input_json):
     print(f"[D12] wallet_count={len(nurse_wallets)}", file=sys.stderr, flush=True)
     print(f"[D13] N_sum={sum(w['N'] for w in nurse_wallets.values())}", file=sys.stderr, flush=True)
     print(f"[D14] quit_nurses_keys={list(quit_nurses.keys())}", file=sys.stderr, flush=True)
+    # 추가
+    print(f"[D15] D_sum={sum(w['D'] for w in nurse_wallets.values())}", file=sys.stderr, flush=True)
+    print(f"[D16] E_sum={sum(w['E'] for w in nurse_wallets.values())}", file=sys.stderr, flush=True)
+    print(f"[D17] total_D={total_D}", file=sys.stderr, flush=True)
+    print(f"[D18] total_E={total_E}", file=sys.stderr, flush=True)
+    print(f"[D19] quit_new_total_D={quit_new_total_D}", file=sys.stderr, flush=True)
+    print(f"[D20] quit_new_total_E={quit_new_total_E}", file=sys.stderr, flush=True)
+    print(f"[D21] all_total_D={all_total_D}", file=sys.stderr, flush=True)
+    print(f"[D22] all_total_E={all_total_E}", file=sys.stderr, flush=True)
     ### debug
     
     # Deduct preferences from wallets
