@@ -907,8 +907,9 @@ def solve_cpsat(parsed_data):
                 n_count_target = new_nurses_dict[nurse]['n_count'] if is_new else quit_nurses_dict[nurse]['n_count']
                 
                 if duty == 'N':
-                    # N은 입력받은 n_count 정확히
-                    model.Add(actual == n_count_target)
+                    ### model.Add(actual == n_count_target) ### 정확한 값 포기
+                    model.Add(actual >= n_count_target - 1) ###
+                    model.Add(actual <= n_count_target + 1) ###    
                 elif duty == 'X':
                     # X: 하한 없음, 상한만
                     model.Add(actual <= target + 1)
