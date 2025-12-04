@@ -128,13 +128,15 @@ def validate_input(data, parsed_data):
                     f"{name}: past_3days pattern {pattern} (z={z}) is not allowed by Z_RULES. "
                     f"This pattern is forbidden and cannot occur."
                 )
-    
-    # Validate daily_wallet sum
-    daily_wallet = parsed_data['daily_wallet']
-    for day, wallet in daily_wallet.items():
-        total = sum(wallet.values())
-        if total != nurse_count:
-            errors.append(f"Day {day}: daily_wallet sum ({total}) != nurse count ({nurse_count})")
+
+    ### delete
+    # # Validate daily_wallet sum
+    # daily_wallet = parsed_data['daily_wallet']
+    # for day, wallet in daily_wallet.items():
+    #     total = sum(wallet.values())
+    #     if total != nurse_count:
+    #         errors.append(f"Day {day}: daily_wallet sum ({total}) != nurse count ({nurse_count})")
+    ### delete
     
     # Validate date range for new nurses
     new_nurses = parsed_data['new_nurses']
