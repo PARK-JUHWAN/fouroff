@@ -403,6 +403,73 @@ def parse_input(input_json):
     
     # Calculate available N for All type nurses
     all_available_N = total_N - consumed_N
+
+    ### plus
+    # ========================================
+    # Calculate D, E consumed by new/quit nurses (BEFORE All wallet calculation)
+    # ========================================
+    quit_new_total_D = 0
+    quit_new_total_E = 0
+    day_keep_new_quit_D = 0  # DayKeep 신규/퇴사의 D
+    
+    for q in quit_nurses_list:
+        qname = q['name']
+        # Get keep_type for this quit nurse
+        nurse_data = next((n for n in nurses_data if n['name'] == qname), None)
+        keep_type = nurse_data.get('keep_type', 'All') if nurse_data else 'All'
+        
+        work_days = q['last_day']
+        n_count = q.get('n_count', 0)
+        
+        if keep_type == 'NightFixed':
+            # NightKeep: D=0, E=0
+            pass
+        elif keep_type == 'DayFixed':
+            # DayKeep: D=work_weekdays, E=0
+            work_weekdays = 0
+            for day in range(1, q['last_day'] + 1):
+                date = f"{year}-{month:02d}-{day:02d}"
+                is_weekend = calendar.weekday(year, month, day) >= 5
+                is_holiday = date in kr_holidays
+                if not (is_weekend or is_holiday):
+                    work_weekdays += 1
+            day_keep_new_quit_D += work_weekdays
+        else:
+            # All type: D, E 균등 분배
+            x_work = (work_days - 1) // max_consecutive_work
+            remaining = work_days - n_count - x_work
+            quit_new_total_D += remaining // 2
+            quit_new_total_E += remaining - (remaining // 2)
+    
+    for n in new_nurses_list:
+        nname = n['name']
+        # Get keep_type for this new nurse
+        nurse_data = next((nd for nd in nurses_data if nd['name'] == nname), None)
+        keep_type = nurse_data.get('keep_type', 'All') if nurse_data else 'All'
+        
+        work_days = num_days - n['start_day'] + 1
+        n_count = n.get('n_count', 0)
+        
+        if keep_type == 'NightFixed':
+            # NightKeep: D=0, E=0
+            pass
+        elif keep_type == 'DayFixed':
+            # DayKeep: D=work_weekdays, E=0
+            work_weekdays = 0
+            for day in range(n['start_day'], num_days + 1):
+                date = f"{year}-{month:02d}-{day:02d}"
+                is_weekend = calendar.weekday(year, month, day) >= 5
+                is_holiday = date in kr_holidays
+                if not (is_weekend or is_holiday):
+                    work_weekdays += 1
+            day_keep_new_quit_D += work_weekdays
+        else:
+            # All type: D, E 균등 분배
+            x_work = (work_days - 1) // max_consecutive_work
+            remaining = work_days - n_count - x_work
+            quit_new_total_D += remaining // 2
+            quit_new_total_E += remaining - (remaining // 2)
+    ### plus
     
     # All type nurses: Dynamic min_N calculation
     if num_all > 0:
@@ -410,8 +477,10 @@ def parse_input(input_json):
         day_keep_total_D = num_day_keep * weekdays
         
         # Calculate remaining D, E, X for All type nurses
-        all_total_D = total_D - day_keep_total_D
-        all_total_E = total_E  # All E goes to All type
+        ### all_total_D = total_D - day_keep_total_D
+        ### all_total_E = total_E  # All E goes to All type
+        all_total_D = total_D - day_keep_total_D - quit_new_total_D - day_keep_new_quit_D ### plus
+        all_total_E = total_E - quit_new_total_E ### plus
         all_total_X = total_X
         
         # Get user input min_N
