@@ -473,18 +473,20 @@ def parse_input(input_json):
         # Remainder distribution
         remainder_D = all_total_D % num_all
         remainder_E = all_total_E % num_all
+
+        ### delete
+        # # Check buffer
+        # total_allocated_N = num_all * per_nurse_N
+        # buffer_N = total_allocated_N - all_available_N
         
-        # Check buffer
-        total_allocated_N = num_all * per_nurse_N
-        buffer_N = total_allocated_N - all_available_N
-        
-        if buffer_N < 0:
-            raise ValueError(
-                f"N 버퍼 부족: {buffer_N}\n"
-                f"  All 타입 {num_all}명 × wallet N {per_nurse_N}개 = {total_allocated_N}개\n"
-                f"  사용 가능한 N: {all_available_N}개\n"
-                f"  부족: {-buffer_N}개"
-            )
+        # if buffer_N < 0:
+        #     raise ValueError(
+        #         f"N 버퍼 부족: {buffer_N}\n"
+        #         f"  All 타입 {num_all}명 × wallet N {per_nurse_N}개 = {total_allocated_N}개\n"
+        #         f"  사용 가능한 N: {all_available_N}개\n"
+        #         f"  부족: {-buffer_N}개"
+        #     )
+        ### delete
         
         for i, name in enumerate(all_nurses):
             d_count = per_nurse_D + (1 if i < remainder_D else 0)
