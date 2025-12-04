@@ -486,12 +486,28 @@ def get_preferences(room_id):
 
 @app.route('/solve', methods=['POST'])
 def solve_schedule():
-    """근무표 생성 (fouroff_ver_8.py 호출)"""
+    """Schedule generation (calls fouroff_ver_8.py)"""
     try:
         input_json = request.get_json()
         
         print(f"[DEBUG] /solve called with {len(json.dumps(input_json))} bytes")
-        print(f"[DEBUG] Input preview: {json.dumps(input_json, ensure_ascii=False)[:200]}...")
+        
+        # Detailed logging for debugging
+        print(f"[DEBUG] year={input_json.get('year')}, month={input_json.get('month')}")
+        print(f"[DEBUG] nurse_count={len(input_json.get('nurses', []))}")
+        
+        # Log each nurse's past_3days
+        for n in input_json.get('nurses', []):
+            print(f"[DEBUG] nurse: {n.get('name')}, past_3days={n.get('past_3days')}, keep_type={n.get('keep_type')}")
+        
+        # Log new/quit nurses
+        print(f"[DEBUG] new_nurses: {input_json.get('new', [])}")
+        print(f"[DEBUG] quit_nurses: {input_json.get('quit', [])}")
+        
+        # Log daily_wallet_config
+        print(f"[DEBUG] daily_wallet_config: {input_json.get('daily_wallet_config', {})}")
+        print(f"[DEBUG] nurse_wallet_min: {input_json.get('nurse_wallet_min', {})}")
+        print(f"[DEBUG] max_consecutive_work: {input_json.get('max_consecutive_work')}")
         
         result = subprocess.run(
             ['python3', 'fouroff_ver_8.py', json.dumps(input_json, ensure_ascii=False)],
