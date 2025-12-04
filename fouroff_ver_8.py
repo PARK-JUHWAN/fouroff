@@ -410,6 +410,7 @@ def parse_input(input_json):
     # ========================================
     quit_new_total_D = 0
     quit_new_total_E = 0
+    quit_new_total_X = 0  # X 차감용 추가
     day_keep_new_quit_D = 0  # DayKeep 신규/퇴사의 D
     
     for q in quit_nurses_list:
@@ -435,11 +436,13 @@ def parse_input(input_json):
                     work_weekdays += 1
             day_keep_new_quit_D += work_weekdays
         else:
-            # All type: D, E 균등 분배
+            # All type: D, E, X 균등 분배
             x_work = (work_days - 1) // max_consecutive_work
+            x_total = (num_days - q['last_day']) + x_work
             remaining = work_days - n_count - x_work
             quit_new_total_D += remaining // 2
             quit_new_total_E += remaining - (remaining // 2)
+            quit_new_total_X += x_total
     
     for n in new_nurses_list:
         nname = n['name']
@@ -464,11 +467,13 @@ def parse_input(input_json):
                     work_weekdays += 1
             day_keep_new_quit_D += work_weekdays
         else:
-            # All type: D, E 균등 분배
+            # All type: D, E, X 균등 분배
             x_work = (work_days - 1) // max_consecutive_work
+            x_total = (n['start_day'] - 1) + x_work
             remaining = work_days - n_count - x_work
             quit_new_total_D += remaining // 2
             quit_new_total_E += remaining - (remaining // 2)
+            quit_new_total_X += x_total
     ### plus
     
     # All type nurses: Dynamic min_N calculation
@@ -481,7 +486,7 @@ def parse_input(input_json):
         ### all_total_E = total_E  # All E goes to All type
         all_total_D = total_D - day_keep_total_D - quit_new_total_D - day_keep_new_quit_D ### plus
         all_total_E = total_E - quit_new_total_E ### plus
-        all_total_X = total_X
+        all_total_X = total_X - quit_new_total_X  # X 차감 적용
         
         # Get user input min_N
         nurse_wallet_min = data.get('nurse_wallet_min', {})
