@@ -829,11 +829,8 @@ def solve_cpsat(parsed_data):
         target_X = nurse_wallets[nurse].get('X', 0)
         actual_X = sum(x[nurse][day]['X'] for day in days)
         model.Add(actual_X <= target_X + 1)
-
-        ###
-        if nurse in special_days_dict:
-            model.Add(actual_X >= target_X - 1)
-        ###
+        ### if nurse in special_days_dict:
+        model.Add(actual_X >= target_X - 1) ###
     
     # Constraint 4: Fix preference duties
     pref_dict = {}
