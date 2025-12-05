@@ -762,6 +762,7 @@ def solve_cpsat(parsed_data):
     preferences = parsed_data['preferences']
     nurses_data = parsed_data['nurses_data']
     de_preferences = parsed_data.get('de_preferences', {})
+    special_days_dict = parsed_data.get('special_days', {}) ###
     
     nurses = list(nurse_wallets.keys())
     days = list(range(1, num_days + 1))
@@ -828,6 +829,11 @@ def solve_cpsat(parsed_data):
         target_X = nurse_wallets[nurse].get('X', 0)
         actual_X = sum(x[nurse][day]['X'] for day in days)
         model.Add(actual_X <= target_X + 1)
+
+        ###
+        if nurse in special_days_dict:
+            model.Add(actual_X >= target_X - 1)
+        ###
     
     # Constraint 4: Fix preference duties
     pref_dict = {}
