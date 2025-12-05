@@ -667,6 +667,7 @@ def parse_input(input_json):
     # Deduct preferences from wallets (N, X만)
     # Note: 퇴사자의 last_day 이후, 신규의 start_day 이전은 이미 강제 X이므로 차감 제외
     preferences = data.get('preferences', [])
+    special_exempt = {name: count for name, count in special_days_dict.items()} ###
     for pref in preferences:
         name = pref['name']
         schedule = pref.get('schedule', {})
@@ -687,8 +688,16 @@ def parse_input(input_json):
                     if day < start_day:
                         continue
                 
+                # if duty in nurse_wallets[name]:
+                #     nurse_wallets[name][duty] -= 1
+                ###
                 if duty in nurse_wallets[name]:
+                    # X이고 special_days 면제 남아있으면 차감하지 않음
+                    if duty == 'X' and special_exempt.get(name, 0) > 0:
+                        special_exempt[name] -= 1
+                        continue  # Skip deduction
                     nurse_wallets[name][duty] -= 1
+                ###     
     
     # Extract Low Grade nurses
     low_grade_nurses = []
