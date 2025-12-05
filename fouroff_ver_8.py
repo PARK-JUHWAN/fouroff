@@ -514,8 +514,10 @@ def parse_input(input_json):
             x_count = per_nurse_X + (1 if i < remainder_X else 0)
             
             nurse_wallets[name] = {
-                'N': per_nurse_N + 1,  # N+1 버퍼
-                'X': x_count + 1       # X+1 버퍼
+                ###'N': per_nurse_N + 1,  ### N+1 버퍼
+                ###'X': x_count + 1       ### X+1 버퍼
+                'N': per_nurse_N,  ### N+1 버퍼 제거
+                'X': x_count       ### X+1 버퍼 제거           
             }
     
     # ========================================
