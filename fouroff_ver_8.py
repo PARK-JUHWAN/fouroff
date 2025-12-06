@@ -461,18 +461,25 @@ def parse_input(input_json):
         keep_type = nurse_data.get('keep_type', 'All') if nurse_data else 'All'
         if keep_type == 'All':
             total_N -= n.get('n_count', 0)
-            ### total_X -= n.get('x_count', 0)
-            auto_x = calculate_auto_x(work_days, num_days, weekends, forced_x) ### change
-            total_X -= auto_x ### change
-
+            # auto_x calculation (unified)
+            start_day = n.get('start_day', 1)
+            work_days = num_days - start_day + 1
+            forced_x = start_day - 1
+            auto_x = calculate_auto_x(work_days, num_days, weekends, forced_x)
+            total_X -= auto_x
     for q in quit_nurses_list:
         nurse_data = next((nd for nd in nurses_data if nd['name'] == q['name']), None)
         keep_type = nurse_data.get('keep_type', 'All') if nurse_data else 'All'
         if keep_type == 'All':
             total_N -= q.get('n_count', 0)
-            total_X -= q.get('x_count', 0)
+            # auto_x calculation (unified)
+            last_day = q.get('last_day', num_days)
+            work_days = last_day
+            forced_x = num_days - last_day
+            auto_x = calculate_auto_x(work_days, num_days, weekends, forced_x)
+            total_X -= auto_x
     
-    # ê²°ê³¼: all_available_N, all_available_X
+    # 결과: all_available_N, all_available_X
     all_available_N = total_N
     all_available_X = total_X
     
