@@ -451,8 +451,10 @@ def parse_input(input_json):
         keep_type = nurse_data.get('keep_type', 'All') if nurse_data else 'All'
         if keep_type == 'All':
             total_N -= n.get('n_count', 0)
-            total_X -= n.get('x_count', 0)
-    
+            ### total_X -= n.get('x_count', 0)
+            auto_x = calculate_auto_x(work_days, num_days, weekends, forced_x) ### change
+            total_X -= auto_x ### change
+
     for q in quit_nurses_list:
         nurse_data = next((nd for nd in nurses_data if nd['name'] == q['name']), None)
         keep_type = nurse_data.get('keep_type', 'All') if nurse_data else 'All'
